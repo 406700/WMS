@@ -2,6 +2,7 @@ using Statistics
 using Plots
 using DelimitedFiles
 using LsqFit
+using EasyFit
 using Interpolations
 plotlyjs()
 include("chirped_laser_data.jl")
@@ -10,11 +11,19 @@ include("chirped_laser_data.jl")
 function calibrate_wavelength(grating_wavelength,grating_spectrum,total_loss,initial_wavelength_index)
     λ_of_t=Vector{Float64}(undef,length(total_loss))
     current_index=initial_wavelength_index
-    for i in 1:length(total_loss)
-        current_index=find_wavelength(total_loss[i],grating_spectrum,current_index)
-        λ_of_t[i]=grating_wavelength[current_index]
+    outliers=zeros(length(total_loss))
+
+    for i = 1:length(total_loss)
+        # try
+            current_index = find_wavelength(total_loss[i], grating_spectrum, current_index)
+            λ_of_t[i] = grating_wavelength[current_index]
+        # catch
+        #     λ_of_t[i]=0
+        #     outliers[i] = total_loss[i]
+        # end
     end
-    return λ_of_t
+
+    return λ_of_t,outliers
 end
 
 #compares the attenuation of the single passed through the TFBG to that of the known grating spectrum. The resolution should be comparable to the noise and should ensure a steady increase in wavelength
@@ -46,27 +55,27 @@ function initialize(experiment)
     time_axis=data[:,1]*1e6 #convert to us
     t_0=findfirst(x->x>0,time_axis) #find trigger
     #time_axis=time_axis[t_0:t_0+pulselength] #set pulse length
-    volt_grating=data[t_0:t_0+pulselength,3] #index three for ALL.csv files
+    volt_grating=data[t_0:t_0+pulselength,3] #NB double check # of channels
 
     data=readdlm(system_risetime_file,',',skipstart=12)#time,channel1, channel,2volts seconds
     time_axis=data[:,1]*1e6 #convert to us
-    t_0=findfirst(x->x>0,time_axis) #find trigger
+    t_0=findfirst(x->x>0,time_axis) #find trigger. Trigger should be set to volt generator.
     time_axis=time_axis[t_0:t_0+pulselength] #set pulse length
-    volt_nograting=data[t_0:t_0+pulselength,2] #index 2 due to way files are saved
+    volt_nograting=data[t_0:t_0+pulselength,3] #NB double check files
 
     #account for the different losses between the two spectrum. methodology, not code, may need review.
     v0_grating=mean(volt_grating[1:1000])
     v0_nograting=mean(volt_nograting[1:1000])
     connectorloss=v0_grating/v0_nograting
     volt_nograting=volt_nograting.*connectorloss
-    gui(plot(time_axis,hcat(volt_nograting,volt_grating)))
+    #gui(plot(time_axis,hcat(volt_nograting,volt_grating)))
     total_loss=volt_grating./volt_nograting
-    gui(plot(total_loss))
+    #gui(plot(total_loss))
     grating_wavelength,grating_spectrum,initial_wavelength_index=TFBG_spectrum_setup(λ0,osa_file)
-    gui(plot(grating_wavelength,grating_spectrum))
-    result=calibrate_wavelength(grating_wavelength,grating_spectrum,total_loss,initial_wavelength_index)
-
-    return result,time_axis
+    #gui(plot(grating_wavelength,grating_spectrum))
+    result,outliers=calibrate_wavelength(grating_wavelength,grating_spectrum,total_loss,initial_wavelength_index)
+    gui(plot(time_axis,hcat(outliers,total_loss),title="outliers"))
+    return result, time_axis
 end
 
 function TFBG_spectrum_setup(λ0,filename)
@@ -115,18 +124,20 @@ function perform_fit(ΔI, λ0, chirp, time_axis)
     # plot!(time_axis,original.(t))
 
     #plt2=(time,axis)
-    #gui(plt)
+    ##gui(plt)
     return fit
 end
 
 global const resolution=.05 # difference between grating loss and measured loss, that are considered a match. should be related to the measurement noise.
-global const spectral_resolution=5e-3 #wavelength spacing of the interpolated grating profile
+global const spectral_resolution=5e-5 #wavelength spacing of the interpolated grating profile
 
 p=plot()
-for i in 3:3#3:length(ChirpedLaserData.experiment_list)
+for i in 5:5#:length(ChirpedLaserData.experiment_list)
     experiment=ChirpedLaserData.experiment_list[i]
-    chirp,time_axis=initialize(experiment)
-    plot!(p,time_axis,chirp, xlabel="time (ms)",ylabel="wavelength (nm)",series="$i")
+    chirp, time_axis=initialize(experiment)
+    plot!(p,time_axis,chirp, xlabel="time (ms)",ylabel="wavelength (nm)",series="$i", title="chirp")
+    chirp_fit = fitspline(time_axis,chirp)
+    plot!(p,chirp_fit.x,chirp_fit.y)
 end
 plot(p)
 
@@ -140,3 +151,10 @@ plot(p)
 # plot!(time_axis,chirp)
 
 #writedlm("./Results/chirp_27_16_281.csv",hcat(time_axis,chirp),',')
+
+
+
+#current problems
+#1: grating using linear interpolation, is not fit to gaussian
+
+#2:
