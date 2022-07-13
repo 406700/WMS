@@ -4,6 +4,7 @@ using DelimitedFiles
 using LsqFit
 using EasyFit
 using Interpolations
+
 plotlyjs()
 include("chirped_laser_data.jl")
 #find chirp wavelength as a  function of t, by matching the loss to the known grating profile
@@ -14,13 +15,13 @@ function calibrate_wavelength(grating_wavelength,grating_spectrum,total_loss,ini
     outliers=zeros(length(total_loss))
 
     for i = 1:length(total_loss)
-        # try
+         try
             current_index = find_wavelength(total_loss[i], grating_spectrum, current_index)
             λ_of_t[i] = grating_wavelength[current_index]
-        # catch
-        #     λ_of_t[i]=0
-        #     outliers[i] = total_loss[i]
-        # end
+         catch
+             λ_of_t[i]=0
+             outliers[i] = total_loss[i]
+         end
     end
 
     return λ_of_t,outliers
@@ -36,7 +37,9 @@ function find_wavelength(total_loss, grating_spectrum, current_index)
             return i
         end
     end
-    error("measured loss and spectrum loss do not match. Check resolution, λ0, or consider if grating has shifted.")
+    #return (findmin(grating_spectrum[(current_index-200):(current_index+200)]-total_loss)[2]+current_index-1)
+
+    #error("measured loss and spectrum loss do not match. Check resolution, λ0, or consider if grating has shifted.")
 end
 
 #osc_file= photodetector output with chirp passing through grating.
@@ -71,11 +74,12 @@ function initialize(experiment)
     #gui(plot(time_axis,hcat(volt_nograting,volt_grating)))
     total_loss=volt_grating./volt_nograting
     #gui(plot(total_loss))
-    grating_wavelength,grating_spectrum,initial_wavelength_index=TFBG_spectrum_setup(λ0,osa_file)
+    grating_wavelength,grating_spectrum,initial_wavelength_index,fwhm=TFBG_spectrum_setup(λ0,osa_file)
     #gui(plot(grating_wavelength,grating_spectrum))
-    result,outliers=calibrate_wavelength(grating_wavelength,grating_spectrum,total_loss,initial_wavelength_index)
-    gui(plot(time_axis,hcat(outliers,total_loss),title="outliers"))
-    return result, time_axis
+    #result,outliers=calibrate_wavelength(grating_wavelength,grating_spectrum,total_loss,initial_wavelength_index)
+    #gui(plot(time_axis,hcat(outliers,total_loss),title="outliers"))
+    #return result, time_axis
+    return fhwm
 end
 
 function TFBG_spectrum_setup(λ0,filename)
@@ -100,44 +104,52 @@ function TFBG_spectrum_setup(λ0,filename)
 
     #get the new starting index for λ0
     initial_wavelength_index_itp=findfirst(x->x>λ0,wavelength_range)
-    return wavelength_range,grating_spectrum,initial_wavelength_index_itp
+    fwhm=find_fwhm(wavelength_range,grating_spectrum,initial_wavelength_index_itp)
+    return wavelength_range,grating_spectrum,initial_wavelength_index_itp,fwhm
 end
 
-function thermal_model(t)
-    #us, nm,
-    #p=[1.4e-3, 9.79e-3, 1.02e-3, 0.0, 1.9, 15.9]
-    λ0=1546.653
-    p=[]
-    λ0 + ΔI*(p[1]+p[2]*(1 -exp(-t / p[5])) + p[3] * (1 - exp(-t / p[6])) + p[4] * t)
+function find_fwhm(wavelength,grating_spectrum,initial_wavelength_index)
+    spectrum_width=Int(round((0.400/spectral_resolution)))# 400pm*/resolution=number of points
+    Δ=grating_spectrum[initial_wavelength_index]-grating_spectrum[initial_wavelength_index+1] #representative change in power
+    search_index_1=Int(initial_wavelength_index+round(spectrum_width/2))
+    search_index_2=Int(initial_wavelength_index+spectrum_width)
+    stop_index=Int(findfirst(x->x-1<Δ,grating_spectrum[search_index_1:search_index_2]))
+    stop_index=Int(search_index_1+stop_index-1)
+
+    grating_spectrum=grating_spectrum[initial_wavelength_index:stop_index]
+    min_index=findmin(grating_spectrum)[2] #inde
+    depth=grating_spectrum[1]-grating_spectrum[min_index]
+    width1=findfirst(x->abs(x-depth/2)<Δ,grating_spectrum)
+    width2=findlast(x->abs(x-depth/2)<Δ,grating_spectrum)
+    fwhm=abs(wavelength[width1]-wavelength[width2]) #spacing is linear so not worrying about exact indexing
+    println("fwhm =$fwhm in nm")
+
+    return fwhm
 end
+
 
 function perform_fit(ΔI, λ0, chirp, time_axis)
     #t=time_axis.*1e3#convert to microseconds
-
-    p0 = [1.4, 9.79, 1.02, 0.0, 1.9, 15.9] #nm, mA, us
+    p0 = [1.4, 9.79, 1.02, 0.0, 1.9, 15.9] #NB pm, mA, us
     @. model(t, p) = λ0 + ΔI*(p[1]+p[2]*(1 -exp(-t / p[5])) + p[3] * (1 - exp(-t / p[6])) + p[4] * t) #NB coneverts λ0 to pm
     fit = LsqFit.curve_fit(model, time_axis, chirp, p0)
 
-    # mine(t)=f(t,fit.param)#/volt_nograting(t)
-    # original(t)=f(t,p0)
-    # plt=plot(time_axis,mine.(t))
-    # plot!(time_axis,original.(t))
-
-    #plt2=(time,axis)
-    ##gui(plt)
     return fit
 end
 
-global const resolution=.05 # difference between grating loss and measured loss, that are considered a match. should be related to the measurement noise.
+global const resolution=.002 # difference between grating loss and measured loss, that are considered a match. should be related to the measurement noise.
 global const spectral_resolution=5e-5 #wavelength spacing of the interpolated grating profile
 
 p=plot()
-for i in 5:5#:length(ChirpedLaserData.experiment_list)
+for i in 8:8#:length(ChirpedLaserData.experiment_list)
     experiment=ChirpedLaserData.experiment_list[i]
-    chirp, time_axis=initialize(experiment)
-    plot!(p,time_axis,chirp, xlabel="time (ms)",ylabel="wavelength (nm)",series="$i", title="chirp")
-    chirp_fit = fitspline(time_axis,chirp)
-    plot!(p,chirp_fit.x,chirp_fit.y)
+    chirp, time_axi,fhwms=initialize(experiment)
+    #plot!(p,time_axis,chirp, xlabel="time (ms)",ylabel="wavelength (nm)",series="$i", title="chirp")
+    #chirp_fit = fitspline(time_axis,chirp)
+    #plot!(p,chirp_fit.x,chirp_fit.y)
+
+    #writedlm("./Results/20220711_$names[i]",hcat(time_axis,chirp),',')
+
 end
 plot(p)
 
@@ -150,11 +162,30 @@ plot(p)
 # plot!(time_axis,thermal_model.(time_axis))
 # plot!(time_axis,chirp)
 
-#writedlm("./Results/chirp_27_16_281.csv",hcat(time_axis,chirp),',')
-
 
 
 #current problems
 #1: grating using linear interpolation, is not fit to gaussian
 
 #2:
+ouellette=readdlm("./Data/ouellette_scraped_chirp.csv",',')
+plot(ouellette[:,1],ouellette[:,2])
+ouellette_fit=perform_fit(8.93*2,0,ouellette[:,2],ouellette[:,1])
+p=ouellette_fit.param
+
+function thermal_model(t)
+    #us, nm,
+    #p=[1.4e-3, 9.79e-3, 1.02e-3, 0.0, 1.9, 15.9]
+    #λ0=1546.653
+    p = [
+        -0.026196790200747156,
+        8.406264266214823,
+        4.3989828084908655,
+        0.005526497605411446,
+        3.003738803033219,
+        22.951301627810935,
+    ]
+    0 + 8.93*2*(p[1]+p[2]*(1 -exp(-t / p[5])) + p[3] * (1 - exp(-t / p[6])) + p[4] * t)
+end
+
+plot!(ouellette[:,1],thermal_model.(ouellette[:,1]))
