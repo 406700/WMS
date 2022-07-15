@@ -144,8 +144,8 @@ exp_272_60_25C_3=Experiment(
     "./Data/Monday11072022/retaped_grating/retaped_spectrum monday.csv",
     "./Data/Monday11072022/retaped_grating/272C TEC ROOM TFBG_ALL.csv",
     "./Data/Monday11072022/retaped_grating/272 TEC ROOM TFBG POWER_ALL.csv",
-    1547.381,
-    1547.568,
+    1547.381,#previously .381
+    1547,
     18.3,
     60,
     30,
@@ -153,6 +153,20 @@ exp_272_60_25C_3=Experiment(
     13.7,
     32
 )
-experiment_list=[exp_372_60,exp_273_60,exp_27_40,exp_255_60_25C,exp_272_60_25C,exp_255_60_25C_2,exp_272_60_25C_2,exp_257_60_25C,exp_272_60_25C_3]
+
+exp_wc_272c_18c = Experiment(
+    "./Data/Tuesday07122022/Spectrums/18C spectrum water.csv",
+    "./Data/Tuesday07122022/272C TEC 18C WATER3_ALL.csv",
+    "./Data/Tuesday07122022/272C TEC POWER_ALL.csv",
+    1547.381,#from anritsu measpreviously .381
+    1547.568,
+    18.3,
+    60,
+    30,
+    27.2,
+    13.7,
+    32,
+)
+experiment_list=[exp_wc_272c_18c]#[exp_372_60,exp_273_60,exp_27_40,exp_255_60_25C,exp_272_60_25C,exp_255_60_25C_2,exp_272_60_25C_2,exp_257_60_25C,exp_272_60_25C_3]
 
 end
