@@ -1,4 +1,3 @@
-##NB possibly a slight drift in the signal over time, even though the trigger was set on the LD ref channel
 
 using DelimitedFiles
 using CSV
