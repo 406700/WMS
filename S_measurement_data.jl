@@ -11,7 +11,7 @@ end
 exp_20220722=S_Experiment(
 "Data/20220721_varied_T/S_data/"
 )
-
+## series of experiments with polarization controll, varied T and varied chirp.
 exp_20220722_45mv_2mv=S_Experiment(
 "Data/20220722/45mv_2mv/"
 )

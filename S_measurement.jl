@@ -80,7 +80,7 @@ function get_temps(files)
     return Temps
 end
 
-#calculates the parameter S give a chirp and two time values.
+
 function calculate_S(t,data, t1, t2,T)
     S = copy(T)
     t1=findfirst(x->abs(x-t1)<.00001,t) #NB could lead to offset. Could also just enter index instead of time.
@@ -127,7 +127,6 @@ t1,t2,S=plot_S_interactive(t,f_t,T)
 
 plot(t,f_t,label=transpose(T))
 
-
-s=calculate_S(f_t,123000,290000)
-
+s=calculate_S(t,f_t,50,60,T)
+plot(T,s)
 plot(s,show=true)

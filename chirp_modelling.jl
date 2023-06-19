@@ -55,13 +55,23 @@ function thermal_model(t)
     #     8.577917156094543e-6,
     # ]
     #20220713_272_18C scraped
+    # p = [
+    #     0.1995269205242194,
+    #     5.393775219553654,
+    #     1.1636603066270863,
+    #     0.0021409270782827487,
+    #     1.6086100795635248,
+    #     25.403833177770455,
+    # ]
+
+    #20220718
     p = [
-        0.1995269205242194,
-        5.393775219553654,
-        1.1636603066270863,
-        0.0021409270782827487,
-        1.6086100795635248,
-        25.403833177770455,
+    -6.452345933684216,
+    13.959920672617752,
+    1.777398906584117,
+    0.00359619971207761,
+    1.614980443915203,
+    17.399179255509587,
     ]
 
     0 + 18.3*(p[1]+p[2]*(1 -exp(-t / p[5])) + p[3] * (1 - exp(-t / p[6])) + p[4] * t)
@@ -83,59 +93,73 @@ end
 ## ouellette
 ouellette=readdlm("./Data/ouellette_scraped_chirp.csv",',')
 plt=plot(ouellette[:,1],ouellette[:,2])
-ouellette_fit=perform_fit(8.93*2,0,ouellette[:,2],ouellette[:,1])
+ouellette_fit=perform_fit(8.93,0,ouellette[:,2],ouellette[:,1])
 p=ouellette_fit.param
 
 plot!(ouellette[:,1],thermal_model.(ouellette[:,1]))
 
-## my chirp
-myData=readdlm("./Results/20220713_chirp_272_18C_long",',')[1:310000,:]
-t=myData[:,1]
-chirp=(myData[:,2].-myData[1,2])*1000 #normalize
-t=t[1400:end].-t[1400]
-chirp=chirp[1400:end]
-plot(chirp)
-#downsample
-downsample=range(1,length(t),step=1000)
-t_downsample=t[downsample]#[t[x] for x in downsample]
-chirp_downsample=chirp[downsample]
-myFit=perform_fit(18.3,0,myData[:,2],myData[:,1])
-p=myFit.param
+# ## my chirp
+# myData=readdlm("./Results/20220713_chirp_272_18C_long",',')[1:310000,:]
+# t=myData[:,1]
+# chirp=(myData[:,2].-myData[1,2])*1000 #normalize
+# t=t[1400:end].-t[1400]
+# chirp=chirp[1400:end]
+# plot(chirp)
+# #downsample
+# downsample=range(1,length(t),step=1000)
+# t_downsample=t[downsample]#[t[x] for x in downsample]
+# chirp_downsample=chirp[downsample]
+# myFit=perform_fit(18.3,0,myData[:,2],myData[:,1])
+# p=myFit.param
+#
+# plot(t,thermal_model.(t))
+#
+#
+# #try from scraped data
+# scrapeData=readdlm("./Results/20220713_272_18_chirp_scraped.csv",',')
+# t=scrapeData[:,1]
+# chirp=scrapeData[:,2]
+# plot(t,chirp)
+# scrapefit=perform_fit(18.3,0,chirp,t)
+# p=scrapefit.param
+#
+# plot(t,thermal_model.(t))
+#
+# ##rough power plot based on the scraped data
+#
+# #1 algorithm to invert function.
+# Δλ=5#1 pm bin
+# λ_range=range(chirp[1],stop=chirp[end],step=Δλ) #new evenly spaced x (λ) axis
+#
+# t_range=range(t[1],stop=t[end],length=1000000)
+# chirp_itp=Interpolations.LinearInterpolation(t,chirp)
+# chirp_of_t=chirp_itp.(t_range)
+# #plot(t_range,chirp_of_t)
+#
+#
+#
+# ##with measured chirp
+# #new evenly spaced x (λ) axis
+# myData=readdlm("./Results/20220713_chirp_272_18C_long",',')[1:end,:]
+# plot(myData[313800:625900,2])
+# t=myData[313800:625900,1]
+# chirp=(myData[313800:625900,2].-myData[625900,2])*1000 #normalize
+# #t=t[1400:end].-t[1400]
+# #chirp=chirp[1400:end]
+# Δλ=5#1 pm bin
+# λ_range=range(chirp[end],stop=chirp[1],step=Δλ)
+# p=power_spectrum(chirp,t,λ_range)
 
-plot(t,thermal_model.(t))
 
+##20220718
 
-#try from scraped data
-scrapeData=readdlm("./Results/20220713_272_18_chirp_scraped.csv",',')
-t=scrapeData[:,1]
-chirp=scrapeData[:,2]
-plot(t,chirp)
-scrapefit=perform_fit(18.3,0,chirp,t)
-p=scrapefit.param
-
-plot(t,thermal_model.(t))
-
-##rough power plot based on the scraped data
-
-#1 algorithm to invert function.
-Δλ=5#1 pm bin
-λ_range=range(chirp[1],stop=chirp[end],step=Δλ) #new evenly spaced x (λ) axis
-
-t_range=range(t[1],stop=t[end],length=1000000)
-chirp_itp=Interpolations.LinearInterpolation(t,chirp)
-chirp_of_t=chirp_itp.(t_range)
-#plot(t_range,chirp_of_t)
-
-
-
-##with measured chirp
-#new evenly spaced x (λ) axis
-myData=readdlm("./Results/20220713_chirp_272_18C_long",',')[1:end,:]
-plot(myData[313800:625900,2])
-t=myData[313800:625900,1]
-chirp=(myData[313800:625900,2].-myData[625900,2])*1000 #normalize
+myData=readdlm("./Results/20220718_chirp_exp_2022071801",',')[1:end,:]
+#plot(myData[1:386000,2])
+t=myData[1050:386000,1]
+chirp=(myData[1050:386000,2].-myData[1050,2])*1000 #normalize
 #t=t[1400:end].-t[1400]
 #chirp=chirp[1400:end]
-Δλ=5#1 pm bin
-λ_range=range(chirp[end],stop=chirp[1],step=Δλ)
-p=power_spectrum(chirp,t,λ_range)
+plot(t,chirp)
+my_fit=perform_fit(18.3,0,chirp,t)
+p=my_fit.param
+plot!(t,thermal_model.(t))

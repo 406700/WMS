@@ -167,6 +167,66 @@ exp_wc_272c_18c = Experiment(
     13.7,
     32,
 )
-experiment_list=[exp_wc_272c_18c]#[exp_372_60,exp_273_60,exp_27_40,exp_255_60_25C,exp_272_60_25C,exp_255_60_25C_2,exp_272_60_25C_2,exp_257_60_25C,exp_272_60_25C_3]
+
+#Friday measurement, with power reference at grating minimum #12,333mv
+exp_272c_18c = Experiment(
+    "./Data/Friday07152022/18C spectrum Friday15072022.csv",
+    "./Data/Friday07152022/272C TEC 18C TFBG 20220715_ALL.csv",
+    "./Data/Tuesday07122022/272C TEC POWER_ALL.csv",#should be the same power didn't measure on Friday
+    1547.381,#from anritsu measpreviously .381
+    1547.568,
+    18.3,
+    60,
+    30,
+    27.2,
+    13.7,
+    32,
+)
+
+#12.83-12.87. minimumpower
+exp_20220718_01=Experiment(
+    "./Data/20220718_DWDD/20220718_tfbg_air_2passhann.csv",
+    "./Data/20220718_DWDD/tfbg-air-2718c-22-9ma_000_ALL.csv",
+    "./Data/20220718_DWDD/tfbg-air-2718c-22-9ma-power_000_ALL.csv",#should be the same power didn't measure on Friday
+    1547.381,#from anritsu measpreviously .381
+    1547.568,
+    18.3,
+    60,
+    30,
+    27.2,
+    13.7,
+    32,
+)
+
+#12.0?mv checkreadme
+exp_20220721=Experiment(
+    "./Data/20220721_varied_T/TFBG_20220720_h2_polarized_adjusted_to_1547_18c.csv",
+    "./Data/20220721_varied_T/S_data/18c repeat_000_ALL.csv",
+    "./Data/20220721_varied_T/power reference_000_ALL.csv",
+    1547.1,#?
+    1547.272,
+    0,
+    45,#high
+    2,#low
+    23.54,
+    0,
+    0,
+)
+
+#37.25
+exp_20220721_100hz=Experiment(
+    "./Data/20220721_varied_T/TFBG_20220720_h2_polarized_adjusted_to_1547_18c.csv",
+    "./Data/20220721_varied_T/100hz/18c 100hz_ALL.csv",
+    "./Data/20220721_varied_T/100hz/power reference 100hz_ALL.csv",
+    1547.1,#?
+    1547.272,
+    0,
+    45,#high
+    2,#low
+    23.54,
+    0,
+    0,
+)
+experiment_list=[exp_20220718_01,exp_20220721, exp_20220721_100hz]#[exp_372_60,exp_273_60,exp_27_40,exp_255_60_25C,exp_272_60_25C,exp_255_60_25C_2,exp_272_60_25C_2,exp_257_60_25C,exp_272_60_25C_3]
 
 end
