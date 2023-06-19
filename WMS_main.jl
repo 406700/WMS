@@ -84,7 +84,7 @@ end
 ############################################################# matlab files (Seems way faster, but maybe just from splitting up files for channels)
 
 #cd("/home/m/OneDrive/Experimental_Data/20230609")
-cd("/home/m/OneDrive/Experimental_Data/20230612_stability/")
+cd("/home/m/OneDrive/Experimental_Data/20230612_stability_OFS_conference_data/")
 f=readdir()#[3:4]#[3:4]
 f=f[[10,12]]
 FP_data=matread(f[1])
