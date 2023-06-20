@@ -4,7 +4,9 @@ using Plots
 using LsqFit
 using EasyFit
 
-L_prime=readdlm("/home/m/OneDrive/Experimental_Data/20230612_stability/L_prime_corrected")
+#L_prime=readdlm("/home/m/OneDrive/Experimental_Data/20230612_stability/L_prime_corrected")
+L_prime=readdlm("/home/m/OneDrive/Experimental_Data/20230620_stability/L_prime_3")
+
 foo=zeros(length(L_prime))
 for i in 1:999
     foo[i]=L_prime[i]
@@ -35,7 +37,7 @@ mean_error=std(fit.resid*1e-12)
 # mean_error=std(linear_fit.residues)*1e-12
 
 ##error in derivative/(slope of derivative function with lambda)
-L_prime_with_mod=readdlm("L_prime_with_fp_modulation")*1e12
+L_prime_with_mod=readdlm("L_prime_with_fp_modulation")*1e12  #where is this file located? 
 t=[t;]
 slope=fitlinear(t[210:220],L_prime_with_mod[210:220])
 plot(t,L_prime_with_mod)
