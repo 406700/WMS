@@ -41,6 +41,8 @@ end
 
 function average_values_referenced(FP)
     #multiply the FP by the reference noise fluctuations (i.e scale the values)
+    #I believe this is to see if we can reduce the noise, but removing intensity noise fluctuations.
+
     i_plus=zeros(sample_periods,averages)
     i_minus=zeros(sample_periods,averages)
     FP_array=zeros(T,sample_periods)
@@ -66,28 +68,31 @@ function average_values_referenced(FP)
     return i_plus/I_0,i_minus/I_0
 end
 
-####################################################CSV files
-# cd("/home/m/OneDrive/Experimental_Data/20230605chirp_stability")
-# data=empty
-# f=readdir()[end]
-# open(`head -n1000000 $f`) do io
-#     global data=readdlm(io,',',skipstart=12)
-# end
-# header=empty
-# open(`head -n12 $f`) do io
-#     global header=readdlm(io,',')
-#  end
-# time=data[:,1].-data[1,1] #normalize to the trigger point
-# FP=data[:,2] #Fabry perot transmission
-# LD=data[:,3]*2 #Laser Diode reference times the resistor ratio. 2= R1/R2
+    ####################################################CSV files
+    # cd("/home/m/OneDrive/Experimental_Data/20230605chirp_stability")
+    # data=empty
+    # f=readdir()[end]
+    # open(`head -n1000000 $f`) do io
+    #     global data=readdlm(io,',',skipstart=12)
+    # end
+    # header=empty
+    # open(`head -n12 $f`) do io
+    #     global header=readdlm(io,',')
+    #  end
+    # time=data[:,1].-data[1,1] #normalize to the trigger point
+    # FP=data[:,2] #Fabry perot transmission
+    # LD=data[:,3]*2 #Laser Diode reference times the resistor ratio. 2= R1/R2
 
-############################################################# matlab files (Seems way faster, but maybe just from splitting up files for channels)
+############################################################# matlab files (Seems way faster, but maybe just from splitting up files for channels) The
+ ###my last files were 3 and 4 from 20230609. I believe the conference paper used the 30 ma modulation from georginas raw data.
+ #
 
-#cd("/home/m/OneDrive/Experimental_Data/20230609")
+cd("/home/m/OneDrive/Experimental_Data/20230609")
+cd("/home/m/OneDrive/Georgina/First _data/Data/Raw")
 #cd("/home/m/OneDrive/Experimental_Data/20230612_stability_OFS_conference_data/")
-cd("/home/m/OneDrive/Experimental_Data/20230620_stability")
+#cd("/home/m/OneDrive/Experimental_Data/20230620_stability")
 f=readdir()#[3:4]#[3:4]
-f=f[[5,6]]
+f=f[[9,10]]
 FP_data=matread(f[1])
 FP=FP_data["data"]
 time=FP_data["time"]
@@ -95,23 +100,25 @@ LD=matread(f[2])["data"]
 FP_data=nothing #free memory?
 
 ##if trigger not set to
-resistor_value=2 #Rch1/Rch2
-offset=1#54230#findfirst(x->x>0,time)
-LD=LD[offset:end]*resistor_value
+#can check if FP is > than LD, than must have had a higher resistance.
+resistor_value=1 #Rch1/Rch2
+offset=1928#51600+2600#findfirst(x->x>0,time)#middle of the first rise i.e trigger on positive pulse
+LD=LD[offset:end]*resistor_value #adjust the voltage according to the resistor
 FP=FP[offset:end]
 time=time[offset:end]
+
 ########################################################### parameters
 #NB resistor values
-sample_interval=1.6e-8 #seconds
+sample_interval=1.6e-8 #time[2]-time[1] #seconds
 data_points_per_period=Int(0.001/sample_interval)
 
-rise_time=250 #risetime of intensity modulation. 250?
-I_0=mean(LD[rise_time:data_points_per_period])
+rise_time=250#?important for I0 #risetime of intensity modulation. 250?
+I_0=mean(LD[1:data_points_per_period])
 Δim= (mean(LD[rise_time:31250])-mean(LD[rise_time+31250:data_points_per_period]))/(2*I_0) #account for the resistor difference 10kohm ch1 5kohm chan2
 FP_frequency=1 #hertz
-measured_delta_lambda=7.2e-10 #my measure 720pm 820 gerogina
+measured_delta_lambda_FP=7.2e-10 #my measure 720pm 820 gerogina. 
 FP_modulation_amplitude=0.2 #volts
-FP_modulation_sensitiviy=measured_delta_lambda/FP_modulation_amplitude#3.5e-9#meters/volt #measured calibration factor, not needed if measured_delta_lambda is available.
+FP_modulation_sensitiviy=measured_delta_lambda_FP/FP_modulation_amplitude#3.5e-9#meters/volt #measured calibration factor, not needed if measured_delta_lambda is available.
 FP_shift=FP_modulation_amplitude*FP_modulation_sensitiviy
 d_lambda_d_t=FP_shift/(1/(2*FP_frequency))#*1e12 #m #cycles/second
 Δν_h=1/Δim*(3e8/1546.920e-9-3e8/1546.896e-9)#<v>-vo/deltap/p  #NB delta im should be the one used in average measurement, but also this shouldn't change.
@@ -177,3 +184,59 @@ ind2=findfirst(x->x==maximum(L),L)
 fwhm=abs(2*(t_to_lambda[ind1]-t_to_lambda[ind2]))
 
 plot(L)
+
+##plotting the insert of the raw transmission data
+mid=findfirst(x->x>0.5,time)
+FPs=FP[mid:end]
+LDs=LD[mid:end]
+
+times=time[mid:end].-time[mid]
+max_index=findfirst(x->x>0.28,times)
+timeshift=findfirst(x->x>0.0999650,times) #tuned to start on the beggining of a cycle
+
+#plot the insert on left side. 
+tuning=
+ start_index_l=max_index-timeshift
+ stop_index_l=start_index_l+data_points_per_period*3
+ plot(times[start_index_l:stop_index_l],FPs[start_index_l:stop_index_l])
+
+ #plot the insert on right side. 
+ #start_index_r=max_index+timeshift
+ start_index_r=findfirst(x->x>.3800368,times) #tuning
+ stop_index_r=start_index_r+data_points_per_period*3
+ plot(times[start_index_r:stop_index_r],FPs[start_index_r:stop_index_r])
+
+#  matwrite("left_insert_30ma.mat", Dict(
+#         "time" => times[start_index_l:stop_index_l],
+#         "FP_voltage" => FPs[start_index_l:stop_index_l]
+#   ))
+
+#   matwrite("right_insert_30ma.mat", Dict(
+#     "time" => times[start_index_r:stop_index_r],
+#     "FP_voltage" => FPs[start_index_r:stop_index_r]
+# ))
+
+# #matwrite("left_insert_LD.mat", Dict(
+#         "time" => times[start_index_l:stop_index_l],
+#         "LD_voltage" => LDs[start_index_l:stop_index_l]
+#   ))
+
+#  # matwrite("right_insert_LD.mat", Dict(
+#     "time" => times[start_index_r:stop_index_r],
+#     "LD_voltage" => LDs[start_index_r:stop_index_r]
+# ))
+# #matwrite("FP.mat", Dict(
+#     "time" => times[:],
+#     "FP_voltage" => FPs[1:50:end]
+# ))
+# #matwrite("FP.mat", Dict(
+#     "time" => times[1:50:end],
+#     "FP_voltage" => FPs[1:50:end]
+# ))
+ plot(FPs[1:10:end])
+
+#matwrite("L_30ma.mat", Dict(
+ #    "wavelength_shift" => [t;f],
+  #   "L" => L, 
+   #  "L_prime"=> L_prime,
+ #))

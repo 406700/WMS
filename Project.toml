@@ -1,0 +1,4 @@
+[deps]
+FiniteDiff = "6a86dc24-6348-571c-b903-95158fe2bd41"
+LsqFit = "2fda8390-95c7-5789-9bda-21331edee243"
+RollingFunctions = "b0e4dd01-7b14-53d8-9b45-175a3e362653"

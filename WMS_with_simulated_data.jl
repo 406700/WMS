@@ -84,7 +84,7 @@ end
 
 
 ################################################################ 
-amplitude=0.31 #determines the amplitude of the resonance, and thus it's derivative
+amplitude=0.6 #.31 #determines the amplitude of the resonance, and thus it's derivative
 center_wavelength=range(1546.5,step=0.01,stop=1547.5)
 Δλ=0.1/2 #total chirp over 2
 t=range(1,step=1,stop=200)#nb if changed, need to change functions It lambda_t
@@ -111,5 +111,5 @@ plot_lor_model(amplitude)
 plot!(center_wavelength,L)
 plot_lor_prime_model(amplitude)
 plot!(center_wavelength*1e-9,L_prime)
-dont_plot="plot = false"
+dont_plot="plot = true"
 

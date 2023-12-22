@@ -5,7 +5,8 @@ using LsqFit
 using EasyFit
 
 #L_prime=readdlm("/home/m/OneDrive/Experimental_Data/20230612_stability/L_prime_corrected")
-L_prime=readdlm("/home/m/OneDrive/Experimental_Data/20230620_stability/L_prime_3")
+L_prime=readdlm("/home/m/OneDrive/Experimental_Data/20230620_stability/L_prime_2")
+#L=readdlm("/home/m/OneDrive/Experimental_Data/20230620_stability/L_2")
 
 foo=zeros(length(L_prime))
 for i in 1:999
@@ -21,8 +22,6 @@ p0=[1.0,1.0,1.0,1.0] #x0,gamma,amplitude
 fit=curve_fit(model,t,L_prime,p0)
 @. model(x)=fit.param[1]+fit.param[2]*(x-fit.param[4])+fit.param[3]*(x-fit.param[4])^2
 
-
-
 plot(t,fit.resid*1e-12)
 plot(t,model.(t),label="fit",xlabel="time [S]",ylabel="L_prime*10^12")
 plot!(t,L_prime,label="data",title="measurement stability data vs fit")
@@ -35,14 +34,23 @@ mean_error=std(fit.resid*1e-12)
 # plot(linear_fit.x,linear_fit.y)
 # plot!(t,L_prime)
 # mean_error=std(linear_fit.residues)*1e-12
+##########################################################finding the slope 
+L_prime_slope=readdlm("/home/m/OneDrive/Experimental_Data/20230609/L_prime")
+linear_section=L_prime_slope[215-10:215+10]
+slope_fit=fitlinear(t[1:length(linear_section)],linear_section)
+slope=abs(slope_fit.a)
+###check
+#plot(t[1:21],linear_section)
+#plot!(slope_fit.x,slope_fit.y)
+
 
 ##error in derivative/(slope of derivative function with lambda)
-L_prime_with_mod=readdlm("L_prime_with_fp_modulation")*1e12  #where is this file located? 
+L_prime_with_mod=readdlm("/home/m/OneDrive/Experimental_Data/20230612_stability_OFS_conference_data/L_prime_with_fp_modulation")*1e12  #where is this file located? 
 t=[t;]
 slope=fitlinear(t[210:220],L_prime_with_mod[210:220])
 plot(t,L_prime_with_mod)
 plot!(slope.x,slope.y)
 slope=slope.a*1e-12
 
-measurement_error=mean_error/(slope*0.5/720e-12)*1e12 #pm
+measurement_error=std(L_prime*1e-12)/(slope*0.5/720e-12)*1e12 #pm
 
