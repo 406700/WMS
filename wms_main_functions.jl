@@ -1,14 +1,14 @@
 
-function L0(i_p,i_m)
+function L0(i_p,i_m,Δim)
 
     1/(2*(1-Δim^2))*(i_p-Δim*i_m)
 end
 
-function L0_prime(i_p,i_m)
+function L0_prime(i_p,i_m,Δν_h,Δim)
    1/(Δν_h*2*(1-Δim^2))*(i_m-Δim*i_p)
 end
 
-function average_values(FP,indices,sample_periods,averages)
+function average_values(FP,indices,sample_periods,averages,T,ts_range,I_0)
     i_plus=zeros(sample_periods,averages)
     i_minus=zeros(sample_periods,averages)
     FP_array=zeros(T,sample_periods)
@@ -51,7 +51,8 @@ function dλ_to_dν(dI_dλ,x)
     return dI_dν, ν
 end
 
-function chirp_estimate()
+#this really just prepares the data by formatting it the same way and dividing into each pulse.
+function chirp_estimate(FP,LD,L_direct,sample_periods,T,indices)
     #chirp_h = zeros(sample_periods)
     #chirp_l = zeros(sample_periods)
     FP_array=zeros(T,sample_periods)
@@ -66,7 +67,7 @@ function chirp_estimate()
     
 end
 
-function get_chirp_value(chirp, x)
+function get_chirp_value(chirp, x,L_direct_avg,λ)
     # Check if x is within the bounds of the array 'L_direct_avg'
     if x < 1 || x > length(L_direct_avg)
         error("Starting point x is out of bounds in vector L_direct_avg")
@@ -107,7 +108,15 @@ function get_chirp_value(chirp, x)
     return abs(λ[index_of_y]-λ[index_of_z])
 end
 
-function lorentzian_fit(λ,L_direct_average)
+function get_chirp_estimate(FP_array, direct_array, LD_array,L_direct_avg,λ, N)
+    chirp=zeros(N)
+    for i in 1:N
+        chirp[i]=get_chirp_value(FP_array[:,i],i,L_direct_avg,λ)
+    end
+    return chirp
+end
+
+function lorentzian_fit(λ,L_direct_avg)
         ################################################################ lorentzian fit 
     @. lor_model(x,p)= p[3]*(1/2*p[2])/(pi*(x-p[1])^2+(1/2*p[2])^2)#lorentzian model
     @. lor_derivative_model(x,p)= p[3]*(-16(x-p[1])*p[2])/(pi*4(x-p[1])^2+p[2]^2)^2#lorentzian model
@@ -121,7 +130,7 @@ function lorentzian_fit(λ,L_direct_average)
     return L_direct_fit, L_prime_direct
 end
 
-function convert_to_dv()
+function convert_to_dv(L_prime_direct,λ)
     #convert to derivative to dI/dν from dI/d_lambda
     #direct_derivative, ν = dλ_to_dν(L_direct_fit,x) #fit params and lambda in nm 
 
@@ -135,7 +144,7 @@ function convert_to_dv()
     return dI_dν
 end
 
-function get_fwhm()
+function get_fwhm(λ, L,L_direct_avg)
         ################################################################# 
     #calculate the fwhm
     ind1=findfirst(x->x>(maximum(L)/2),L)
@@ -147,18 +156,10 @@ function get_fwhm()
     return fwhm_method, fwhm_direct
 end
 
-function get_chirp_estimate()
-    FP_array,direct_array,LD_array=chirp_estimate()
-    chirp=zeros(500)
-    for i in 1:500
-        chirp[i]=get_chirp_value(FP_array[:,i],i)
-    end
-    return chirp
-end
+
 
 function trigger_values(LD,T,sample_periods,search_width=1000)
     LD_trigger=LD.-mean(LD)
-    println(length(LD_trigger))
     #search_width=1000 #based on visually checking first and last LD pulse
     step_size=Int(T/2-search_width/2)
     indices=zeros(sample_periods*2)
@@ -171,3 +172,30 @@ function trigger_values(LD,T,sample_periods,search_width=1000)
     indices=Int.(indices[1:2:(2*sample_periods-1)])
     return indices
 end
+function offset_trigger_values(LD,T,sample_periods,search_width=1000)
+    LD_trigger=LD.-mean(LD)
+    #search_width=1000 #based on visually checking first and last LD pulse
+    step_size=Int(T/2-search_width/2)
+    indices=zeros(sample_periods*2)
+    search_start=1
+    for i in 1:length(indices) 
+        next_ind=findmin(abs.(LD_trigger[search_start:search_start+step_size]))[2]#find the minimum element in the expected range 
+        indices[i]=Int(search_start+next_ind)
+        search_start=search_start+next_ind+step_size
+    end
+    #indices=Int.(indices[1:2:(2*sample_periods-1)]) removed.
+    return Int.(indices)
+end
+
+function find_rising_trigger(LD, indices, window_size)
+    for index in indices
+        ##check the slope around the point
+        if LD[index-window_size]<LD[index+window_size]
+            return index
+        end    
+    end
+    return -1
+end
+
+
+

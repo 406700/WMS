@@ -5,6 +5,7 @@ ld_file = dir* "01_ch2.mat"#"path/to/first/ld/file.mat"
 
 #FP 
 FP_frequency=1 #hertz
+N=500
 FP_min_wavelength=1546.286e-9
 FP_max_wavelength=1547.078e-9
 FP_shift= FP_max_wavelength-FP_min_wavelength #1546   my measure 720pm 820 gerogina.

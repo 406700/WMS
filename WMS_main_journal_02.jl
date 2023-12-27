@@ -10,7 +10,7 @@ using LsqFit
 plotlyjs()
 
 cd("/home/m/OneDrive/Experimental_Data/WMS_final_paper/")
-
+cd("")
 
 function L0(i_p,i_m)
 
@@ -122,13 +122,14 @@ end
 
 ############################################################# matlab files (Seems way faster, but maybe just from splitting up files for channels) The
 
+dir="/home/m/OneDrive/Experimental_Data/WMS_final_paper/"
+fp_file =  dir*"03_ch1.mat"
+ld_file = dir* "03_ch2.mat"#"path/to/first/ld/file.mat"
 
-f=readdir()#[3:4]#[3:4]
-f=f[[2,3]]
-FP_data=matread(f[1])
+FP_data=matread(fp_file)
 FP=FP_data["data"]
 time=FP_data["time"]
-LD=matread(f[2])["data"]
+LD=matread(ld_file)["data"]
 FP_data=nothing #free memory?
 
 #experiment parameters:
@@ -139,20 +140,21 @@ sample_interval=1.6e-8 #time[2]-time[1] #seconds
 data_points_per_period=Int(0.001/sample_interval)
 
 #FP 
-FP_frequency=1 #hertz
-FP_min_wavelength=1546.286e-9
-FP_max_wavelength=1547.078e-9
-FP_shift= FP_max_wavelength-FP_min_wavelength #1546   my measure 720pm 820 gerogina.
-FP_modulation_amplitude=0.2 #volts
+FP_frequency=0.5 #hertz
+FP_min_wavelength=1546.286e-9-0.175e-9
+FP_max_wavelength=1547.078e-9+0.175e-9
+FP_shift= (FP_max_wavelength-FP_min_wavelength) #1546   my measure 720pm 820 gerogina.
+FP_modulation_amplitude=0.3 #volts
 
 #LD 
-c=2.88e8
+c=2.99e8
 average_ν=c/1546.920e-9
 ν_0=c/1546.896e-9
 ## If data triggered on FP, allign the LD pulses and adjust data accordingly. 
 LD=LD*resistor_value
 LD_mean=mean(LD) #find the mean value to set the 'trigger' point. 
-offset=findfirst(x->x>LD_mean,LD)[1] #middle of the first rise i.e trigger on positive pulse
+offset=findfirst(x->x>=LD_mean,LD)[1] #middle of the first rise i.e trigger on positive pulse
+
 LD=LD[offset:end] #adjust the voltage according to the resistor
 FP=FP[offset:end]
 time=time[offset:end]
@@ -173,10 +175,10 @@ d_lambda_d_t=FP_shift/(1/(2*FP_frequency))#*1e12 #m #cycles/second
 T=data_points_per_period#period in sample numbers 
 ts=rise_time #defines the number of samples before the value stabilizes
 ts_range=Int.(range(rise_time,step=1,stop=31250-rise_time)) #31250 is the number of data points per half modulation cycle# important in the averaging functions. 
-sample_periods=999 #number of modulation cycles to average over
+sample_periods=995 #number of modulation cycles to average over
 averages=Int(length(ts_range)) #number of data points to average over in each modulation cycle
 #λ=range(0,step=.001,stop=0.001*sample_periods-.001)*d_lambda_d_t .+FP_min_wavelength#0:.001:998 *dλ/dt *1e9 nm/m(NB nm/second)
-λ=FP_min_wavelength .+ d_lambda_d_t .* range(0,step=0.001,length=500) #NB 499?
+λ=FP_min_wavelength .+ d_lambda_d_t .* range(0,step=0.001,length=995) #NB 499?
 ν=transpose(c/λ)
 #dI_to_dI/dν=1/d_lambda_d_t #dI/dt*1/d_lambda_d_t
 
@@ -196,13 +198,18 @@ indices=Int.(indices[1:2:(2*sample_periods-1)])
 
 #unmodulated 
 #the unmodulated data
-f=readdir()[4:5]
-L_direct=matread(f[1])["data"]
-L_direct=L_direct/I_0 #normalize the direct measurement. NB should use its own reference channel if possible. since current setting may not be exactly I_0
+fp_file =  dir*"03nm_ch1.mat"
+ld_file = dir* "03nm_ch2.mat"#"path/to/first/ld/file.mat"
+
+f=readdir()[3:4]
+L_direct=matread(fp_file)["data"]
+I_direct=matread(ld_file)["data"]*resistor_value
+
+L_direct=L_direct/mean(I_direct) #normalize the direct measurement. NB should use its own reference channel if possible. since current setting may not be exactly I_0
 #LD_direct_mean=matread(f[2])
 L_direct=L_direct[offset:end]
 L_direct_avg=LD_average_values(L_direct)
-L_direct_avg=L_direct_avg[1:500] 
+L_direct_avg=L_direct_avg[1:995] 
 
 ################################################################ lorentzian fit 
 @. lor_model(x,p)= p[3]*(1/2*p[2])/(pi*(x-p[1])^2+(1/2*p[2])^2)#lorentzian model
@@ -221,8 +228,8 @@ i_plus,i_minus=average_values(FP)
 L=L0.(i_plus,i_minus)
 L_prime=L0_prime.(i_plus,i_minus)
 
-L=L[1:500]
-L_prime=L_prime[1:500]
+L=L[1:995]
+L_prime=L_prime[1:995]
 
 #convert to derivative to dI/dν from dI/d_lambda
 #direct_derivative, ν = dλ_to_dν(L_direct_fit,x) #fit params and lambda in nm 
@@ -315,8 +322,12 @@ end
 ###chirp estimate 
 
 FP_array,direct_array,LD_array=chirp_estimate()
-chirp=zeros(500)
-for i in 1:500
+chirp=zeros(995)
+for i in 1:995
     chirp[i]=get_chirp_value(FP_array[:,i],i)
 end
 plot(chirp*1e12)
+plot(λ ,L)
+plot!(λ,L_direct_avg)
+plot(L_prime)
+plot!(dI_dν)

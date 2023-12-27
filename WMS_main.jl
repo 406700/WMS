@@ -89,8 +89,8 @@ end
 
 cd("/home/m/OneDrive/Experimental_Data/20230609")
 cd("/home/m/OneDrive/Georgina/First _data/Data/Raw")
-#cd("/home/m/OneDrive/Experimental_Data/20230612_stability_OFS_conference_data/")
-#cd("/home/m/OneDrive/Experimental_Data/20230620_stability")
+cd("/home/m/OneDrive/Experimental_Data/20230612_stability_OFS_conference_data/")
+cd("/home/m/OneDrive/Experimental_Data/20230620_stability")
 f=readdir()#[3:4]#[3:4]
 f=f[[9,10]]
 FP_data=matread(f[1])

@@ -3,7 +3,7 @@ plotlyjs()
 include("wms_main_functions.jl")
 
 # Import the data configuration module for the desired data set
-include("data_config_30ma.jl")
+include("data_config_20ma.jl")
 #using .DataConfig1
 
 # Function to load and process data
@@ -12,19 +12,16 @@ function load_and_process_data()
     FP = FP_data["data"]
     time = FP_data["time"]
     LD = matread(ld_file)["data"]
-    println(ld_file)
     FP_data = nothing  # Free memory
 
     # Use experiment parameters from exp_params dictionary
   
     data_points_per_period=Int(0.001/sample_interval)
-    T=data_points_per_period
+
     ## If data triggered on FP, allign the LD pulses and adjust data accordingly. 
     LD=LD*resistor_value
     LD_mean=mean(LD) #find the mean value to set the 'trigger' point. 
-    offset_indices= offset_trigger_values(LD,T,2)
-    offset=find_rising_trigger(LD[1:100000],offset_indices,5)#findfirst(x->x>LD_mean,LD)[1] #middle of the first rise i.e trigger on positive pulse
-
+    offset=findfirst(x->x>LD_mean,LD)[1] #middle of the first rise i.e trigger on positive pulse
     LD=LD[offset:end] #adjust the voltage according to the resistor
     FP=FP[offset:end]
     time=time[offset:end]
@@ -57,19 +54,20 @@ function load_and_process_data()
     I0_direct=matread(ld_direct_file)["data"]
     I0_direct=mean(I0_direct)*resistor_value
     L_direct=L_direct/I0_direct #normalize the direct measurement. NB should use its own reference channel if possible. since current setting may not be exactly I_0
-
+    #LD_direct_mean=matread(f[2])
     L_direct=L_direct[offset:end]
     L_direct_avg=LD_average_values(L_direct,indices,sample_periods,T) 
     L_direct_avg=L_direct_avg[1:M] 
 
     # Ensure all required variables are passed to functions
     i_plus, i_minus = average_values(FP,indices,sample_periods,averages,T,ts_range,I_0) # No change needed
+    L_direct_avg = LD_average_values(L_direct,indices,sample_periods,T) # No change needed
     #FP_array, direct_array, LD_array = chirp_estimate(FP,LD,L_direct,sample_periods,T,indices)
     #chirp = get_chirp_estimate(FP_array, direct_array, LD_array,L_direct_avg,λ, N)
 
     # 
-    L_direct_fit, L_prime_direct = lorentzian_fit(λ,L_direct_avg)
-    L_prime_direct = convert_to_dv(L_prime_direct,λ)
+    #L_direct_fit, L_prime_direct = lorentzian_fit(λ,L_direct_average)
+    #L_prime_direct = convert_to_dv(L_prime_direct,λ)
 
     # Pass necessary variables to L0 and L0_prime functions
     L = L0.(i_plus, i_minus, Δim) # Assuming Δim is available
@@ -79,12 +77,10 @@ function load_and_process_data()
 
 
     #println("FWHM method: $fwhm_method, FWHM direct: $fwhm_direct")
-    return λ, ν, L, L_prime, L_direct_avg, L_prime_direct
+    return λ, ν, L, L_prime, L_direct, dI_dν
 end
 # Main function
-λ,ν,L,L_prime,L_direct_avg,L_prime_direct= load_and_process_data()
+λ,ν,L,L_prime= load_and_process_data()
 
 plot(λ,L)
-plot!(λ,L_direct_avg)
 plot(λ,L_prime)
-plot!(λ,L_prime_direct)
