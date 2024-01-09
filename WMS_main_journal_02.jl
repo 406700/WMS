@@ -10,7 +10,7 @@ using LsqFit
 plotlyjs()
 
 cd("/home/m/OneDrive/Experimental_Data/WMS_final_paper/")
-cd("")
+cd("20231226")
 
 function L0(i_p,i_m)
 
@@ -122,9 +122,9 @@ end
 
 ############################################################# matlab files (Seems way faster, but maybe just from splitting up files for channels) The
 
-dir="/home/m/OneDrive/Experimental_Data/WMS_final_paper/"
-fp_file =  dir*"03_ch1.mat"
-ld_file = dir* "03_ch2.mat"#"path/to/first/ld/file.mat"
+dir=pwd()
+fp_file =  dir*"/20mv_ch1.mat"
+ld_file = dir* "/20mv_ch2.mat"#"path/to/first/ld/file.mat"
 
 FP_data=matread(fp_file)
 FP=FP_data["data"]

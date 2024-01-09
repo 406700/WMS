@@ -1,90 +1,83 @@
-using DelimitedFiles, CSV, DataFrames, Plots, Statistics, MAT, LsqFit
+using DelimitedFiles, CSV, DataFrames, Plots, Statistics, MAT, LsqFit,Serialization, RollingFunctions
 plotlyjs()
 include("wms_main_functions.jl")
 
-# Import the data configuration module for the desired data set
-include("data_config_30ma.jl")
-#using .DataConfig1
 
-# Function to load and process data
-function load_and_process_data()
-    FP_data = matread(fp_file)
-    FP = FP_data["data"]
-    time = FP_data["time"]
-    LD = matread(ld_file)["data"]
-    println(ld_file)
-    FP_data = nothing  # Free memory
+modulation_values=20#[5,10,15,20,25,30]
 
-    # Use experiment parameters from exp_params dictionary
-  
-    data_points_per_period=Int(0.001/sample_interval)
-    T=data_points_per_period
-    ## If data triggered on FP, allign the LD pulses and adjust data accordingly. 
-    LD=LD*resistor_value
-    LD_mean=mean(LD) #find the mean value to set the 'trigger' point. 
-    offset_indices= offset_trigger_values(LD,T,2)
-    offset=find_rising_trigger(LD[1:100000],offset_indices,5)#findfirst(x->x>LD_mean,LD)[1] #middle of the first rise i.e trigger on positive pulse
-
-    LD=LD[offset:end] #adjust the voltage according to the resistor
-    FP=FP[offset:end]
-    time=time[offset:end]
-    #derived values
-    rise_time=250#?important for I0 #risetime of intensity modulation. 250?
-    I_0=LD_mean# mean(LD[1:data_points_per_period])
-    Δim= (mean(LD[rise_time:31250-rise_time])-mean(LD[rise_time+31250:data_points_per_period-rise_time]))/(2*I_0) #account for the resistor difference 10kohm ch1 5kohm chan2
-
-    FP_modulation_sensitiviy=FP_shift/FP_modulation_amplitude#3.5e-9#meters/volt #measured calibration factor, not needed if measured_delta_lambda is available.
-    d_lambda_d_t=FP_shift/(1/(2*FP_frequency))#*1e12 #m #cycles/second
-    Δν_h=1/Δim*(average_ν-ν_0)#<v>-vo/deltap/p  #NB delta im should be the one used in average measurement, but also this shouldn't change.
-
-    #getting the time
-    T=data_points_per_period#period in sample numbers 
-    ts=rise_time #defines the number of samples before the value stabilizes
-    ts_range=Int.(range(rise_time,step=1,stop=31250-rise_time)) #31250 is the number of data points per half modulation cycle# important in the averaging functions. 
-    sample_periods=999 #number of modulation cycles to average over
-    averages=Int(length(ts_range)) #number of data points to average over in each modulation cycle
-    λ=FP_min_wavelength .+ d_lambda_d_t .* range(0,step=0.001,length=M)
-  
-    ν=transpose(c/λ)
-  
-    indices=trigger_values(LD,T,sample_periods)
-
-    #############################################################################
-    #create the timing and avoid drift in the LD (cant count on an exact number of samples per period)
-
-    ##get the 'direct' or reference data (unmodulated) file names ending in nm for no modulation.
-    L_direct=matread(fp_direct_file)["data"]
-    I0_direct=matread(ld_direct_file)["data"]
-    I0_direct=mean(I0_direct)*resistor_value
-    L_direct=L_direct/I0_direct #normalize the direct measurement. NB should use its own reference channel if possible. since current setting may not be exactly I_0
-
-    L_direct=L_direct[offset:end]
-    L_direct_avg=LD_average_values(L_direct,indices,sample_periods,T) 
-    L_direct_avg=L_direct_avg[1:M] 
-
-    # Ensure all required variables are passed to functions
-    i_plus, i_minus = average_values(FP,indices,sample_periods,averages,T,ts_range,I_0) # No change needed
-    #FP_array, direct_array, LD_array = chirp_estimate(FP,LD,L_direct,sample_periods,T,indices)
-    #chirp = get_chirp_estimate(FP_array, direct_array, LD_array,L_direct_avg,λ, N)
-
-    # 
-    L_direct_fit, L_prime_direct = lorentzian_fit(λ,L_direct_avg)
-    L_prime_direct = convert_to_dv(L_prime_direct,λ)
-
-    # Pass necessary variables to L0 and L0_prime functions
-    L = L0.(i_plus, i_minus, Δim) # Assuming Δim is available
-    L_prime = L0_prime.(i_plus, i_minus, Δν_h, Δim) # Assuming Δν_h and Δim are available
-
-    #fwhm_method, fwhm_direct = get_fwhm(λ, L, L_direct_avg)
-
-
-    #println("FWHM method: $fwhm_method, FWHM direct: $fwhm_direct")
-    return λ, ν, L, L_prime, L_direct_avg, L_prime_direct
+results=Dict()
+for i in 1:length(modulation_values)
+    index=modulation_values[i]
+    string="data_config_"*"$index"*"ma.jl"
+    include(string)
+    λ,ν,L,L_prime,L_direct_avg,L_prime_direct= load_and_process_data(fp_file,ld_file,fp_direct_file,ld_direct_file)
+    λ,ν,L,L_prime,L_direct_avg,L_prime_direct,FP_array, LD_array= load_and_process_data(fp_file,ld_file,fp_direct_file,ld_direct_file);
+    results[index]=( λ,ν,L,L_prime,L_direct_avg,L_prime_direct,FP_array, LD_array) 
 end
-# Main function
-λ,ν,L,L_prime,L_direct_avg,L_prime_direct= load_and_process_data()
 
-plot(λ,L)
-plot!(λ,L_direct_avg)
-plot(λ,L_prime)
-plot!(λ,L_prime_direct)
+# results=Dict()
+# for i in 1:length(modulation_values)
+#     index=modulation_values[i]
+#     string="data_config_17_"*"$index"*"mv.jl"
+#     include(string)
+#     #λ,ν,L,L_prime,L_direct_avg,L_prime_direct= load_and_process_data(fp_file,ld_file,fp_direct_file,ld_direct_file)
+#     λ,ν,L,L_prime,L_direct_avg,L_prime_direct,FP_array, LD_array= load_and_process_data(fp_file,ld_file,fp_direct_file,ld_direct_file);
+#     results[index]=( λ,ν,L,L_prime,L_direct_avg,L_prime_direct,FP_array, LD_array) 
+# end
+
+
+# Example usage
+#results = load_results("results.dat")
+#save_results(results,"20240106_combined_results_17ma")
+#results=load_results("20240106_combined_results_17ma")
+
+#multi_plot()
+# plot_max_L()
+
+
+# # Assuming 'results' is already populated as per your provided code
+#derivative_scaling_factors = find_scaling_factors(results)
+
+# # Plot scaling factor against modulation index
+# plot(modulation_values[[1,2,4,5]], log2.(derivative_scaling_factors[[1,2,4,5]]), title="Scaling Factor vs Modulation Index", xlabel="Modulation Index", ylabel="Scaling Factor", legend=false)
+
+# #visual confirmation
+# #derivative_scaling_visual_check(results,derivative_scaling_factors)
+# # scaling manual check: Call the function to find the scaling factor 
+# #scaling_factor = find_scaling_factor(results[20][4],results[20][6])
+
+# #chirp function checks.
+#  results=Dict()
+#  for i in 1:length(modulation_values)
+#     index=modulation_values[i]
+#     string="data_config_"*"$index"*"ma.jl"
+#     include(string)
+#     λ,ν,L,L_prime,L_direct_avg,L_prime_direct,FP_array, LD_array,chirp= load_and_process_data()
+#     results[index]=(FP_array,L_direct_avg,λ) 
+# end
+# chirp_dict=Dict()
+# for i in 1:1length(results)
+#     index=modulation_values[i]
+#     FP_array,L_direct_avg,λ=results[index]
+#    chirp_dict[index]=simple_chirp_estimate(FP_array,L_direct_avg, λ,0.2)
+# end
+
+# index=modulation_values[4]
+# FP_array,L_direct_avg,λ=results[index]
+# @time chirp=simple_chirp_estimate(FP_array,L_direct_avg, λ,0.2)
+
+# chirp=simple_chirp_estimate(FP_array,L_direct_avg, λ,0.2)
+# plot(chirp)
+
+
+# foo=exponential_fit(rollmean(FP_array[31250:end,350],100))
+# plot!(rollmean(FP_array[31250:end,350],100))
+# plot(chirp)
+
+#scratch
+#plot(modulation_values,derivative_scaling_factors)
+#savefig("scaling_factor_v_modulation")
+
+#multi_plot(results,scale_factor,modulation,save)
+λ,ν,L,L_prime,L_direct_avg,L_prime_direct,FP_array, LD_array=results[30]
+plot(rollmean(LD_array[:,500],200)) 
