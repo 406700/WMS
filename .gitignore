@@ -1,1 +1,8 @@
-Data/*
+# Ignore everything
+*
+
+# But not these files...
+!*.jl
+
+# Additionally, do not ignore the .gitignore file itself
+!.gitignore
