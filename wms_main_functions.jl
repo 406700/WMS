@@ -1,13 +1,49 @@
 
-using DelimitedFiles, CSV, DataFrames, Plots, Statistics, MAT, LsqFit,Serialization, RollingFunctions,Infiltrator,EasyFit,Interpolations,Roots,LaTeXStrings,Measures
-gr()
+using DelimitedFiles, CSV, DataFrames, Statistics, MAT, LsqFit,Serialization, RollingFunctions,Infiltrator,EasyFit,Interpolations,Roots,LaTeXStrings,Measures,PyPlot,LaTeXStrings #Plots
 
-upscale = 1 #8x upscaling in resolution
-fntsm = Plots.font("Helvetica", pointsize=round(12.0*upscale))
-fntlg = Plots.font("Helvetica", pointsize=round(16.0*upscale))
-default(titlefont=fntlg, guidefont=fntlg, tickfont=fntsm, legendfont=fntsm)
-default(size=(800*upscale,600*upscale)) #Plot canvas size
-#default(dpi=300) #Only for PyPlot - presently broken
+
+
+import PyPlot; const plt = PyPlot;
+using PyCall
+rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams");
+function set_default_font(font_path::String)
+    fm = pyimport("matplotlib.font_manager")
+    font_prop = fm.FontProperties(fname=font_path)
+    font_name = font_prop.get_name()
+    rcParams["font.family"] = font_name
+end
+set_default_font("/usr/share/fonts/truetype/msttcorefonts/Arial.ttf")
+
+# Set default figure size
+total_width_in_inches = 3.5
+aspect_ratio=3/4
+# rcParams["text.usetex"]=true #keep off for now due to font uses. only use if necessary.
+rcParams["figure.figsize"] = (total_width_in_inches, total_width_in_inches*aspect_ratio)
+rcParams["figure.dpi"] = 800
+rcParams["lines.linewidth"]=0.4
+rcParams["axes.titlesize"]=8
+rcParams["xtick.labelsize"]=6
+rcParams["ytick.labelsize"]=6
+rcParams["legend.fontsize"]=6
+rcParams["figure.titlesize"]=8
+# rcParams["lines.marker"] = "."  # Set default marker
+rcParams["lines.markersize"] = 4 
+# plt.rcParams.update({
+#     "font.size': 8,
+#     'axes.titlesize': 8,
+#     'axes.labelsize': 8,
+#     'xtick.labelsize': 8,
+#     'ytick.labelsize': 8,
+#     'legend.fontsize': 8,
+#     'figure.titlesize': 8
+# })
+# gr()
+# upscale = 1 #8x upscaling in resolution
+# fntsm = Plots.font("Helvetica", pointsize=round(12.0*upscale))
+# fntlg = Plots.font("Helvetica", pointsize=round(16.0*upscale))
+# default(titlefont=fntlg, guidefont=fntlg, tickfont=fntsm, legendfont=fntsm)
+# default(size=(width_in_pixels,)) #Plot canvas size
+
 
 # Function to load and process data
 # function load_and_process_data_old(fp_file,ld_file,fp_direct_file,ld_direct_file)

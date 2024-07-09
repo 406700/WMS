@@ -34,35 +34,76 @@ for (index,value) in enumerate(modulation_values)
 end
 
 ######plot all the chirps for 26mA
+# fig, ax = plt.subplots()
+# ax.set_ylabel(L"$|\Delta \lambda \langle h \rangle |$")
+# ax.set_xlabel("modulation voltage (mV)")  # Optionally enforce fontsize
+# ax.plot(modulation_values,abs.(Δν_h*λ_26^2/c*1e12),label="26 mA",marker=".")
+# ax.plot(modulation_values,abs.(Δν_h2*λ_26^2/c*1e12),label="17 mA",linestyle="--",marker=".")
+# plt.legend(loc="upper left")
+
 time=range(start=0.0,step=0.000000016,length=length(chirp_result[5][1]))*1000
-p=plot(xlabel=legend=:bottomright,frame=:box,linestyle=:solid, linealpha=0.5, linewidth=4*upscale,grid=false)
-for (index,value) in enumerate(modulation_values)
-    plot!(p,time,chirp_result[value][1]./maximum(abs.(chirp_result[value][1])),label="$value mV")
+
+# for (index,value) in enumerate(modulation_values)
+#     plot!(p,time,chirp_result[value][1]./maximum(abs.(chirp_result[value][1])),label="$value mV")
+# end
+
+# p=plot(xlabel=legend=:bottomright,frame=:box,linestyle=:solid, linealpha=0.5, linewidth=4*upscale,grid=false)
+# for (index,value) in enumerate(modulation_values)
+#     plot!(p,time,chirp_result[value][1]./maximum(abs.(chirp_result[value][1])),label="$value mV")
+# end
+# display(p)
+# savefig("./figures/"*"normalized_chirp")
+
+
+# p=plot(ylabel="chirp (pm)",xlabel="",legend=:bottomright,frame=:box,linestyle=:solid, linealpha=0.5, linewidth=4*upscale,grid=false)
+# for (index,value) in enumerate(modulation_values)
+#     plot!(p,time,chirp_result[value][1]*1e12,label="$value mV")
+# end
+# display(p)
+# savefig("./figures/"*"chirp_unnormalized")
+
+# #######compare chirps betweem 17 and 26mA
+
+# p2=plot(ylabel="normalized chirp",xlabel="time (mS)",legend=:bottomright,frame=:box,linestyle=:solid, linealpha=0.5, linewidth=4*upscale)
+# for (index,value) in enumerate([10,20])
+#     plot!(p2,time,chirp_result[value][1]./maximum(abs.(chirp_result[value][1])),label="26 mA $value mV")
+#     plot!(p2,time,chirp_result2[value][1]./maximum(abs.(chirp_result2[value][1])),label="17mA $value mV")
+# end
+# display(p2)
+# savefig("./figures/"*"chirp_16_26")
+
+# combined_plot = plot(p, p2, layout=(2, 1),link=:x)
+# display(combined_plot)
+# savefig("./figures/combined_chirp_plot")
+###############################################################################################
+# Define the figure size and number of subplots
+total_width_in_inches = 3.5
+num_subplots = 2
+subplot_width_in_inches = total_width_in_inches
+subplot_height_in_inches = subplot_width_in_inches / 3  # aspect ratio
+fig, axs = plt.subplots(2, 1, figsize=(total_width_in_inches, num_subplots * subplot_height_in_inches))
+timerange=range(start=0.0,step=0.000000016,length=length(chirp_result[5][1]))*1000
+
+# First plot
+axs[1].set_ylabel("chirp (pm)")
+axs[1].set_xlabel("")
+for (index, value) in enumerate(modulation_values)
+    axs[1].plot(timerange, chirp_result[value][1] * 1e12, label="$value mV")
 end
-display(p)
-#savefig("./figures/"*"normalized_chirp")
+axs[1].legend(loc="lower right",framealpha=1)
 
+axs[2].set_ylabel("normalized chirp")
+axs[2].set_xlabel("time (ms)")
 
-p=plot(ylabel="chirp (pm)",xlabel="",legend=:bottomright,frame=:box,linestyle=:solid, linealpha=0.5, linewidth=4*upscale,grid=false)
-for (index,value) in enumerate(modulation_values)
-    plot!(p,time,chirp_result[value][1]*1e12,label="$value mV")
+for (index, value) in enumerate([10, 20])
+    axs[2].plot(timerange, chirp_result[value][1] ./ maximum(abs.(chirp_result[value][1])), label="26 mA $value mV")
+    axs[2].plot(timerange, chirp_result2[value][1] ./ maximum(abs.(chirp_result2[value][1])), label="17mA $value mV")
 end
-display(p)
-savefig("./figures/"*"chirp_unnormalized")
+axs[2].legend(loc="lower right",framealpha=1)
+fig.tight_layout(pad=0.4)
+# Save the combined figure
+fig.savefig("./matplotlibfigures/combined_chirp_plot.png")
 
-#######compare chirps betweem 17 and 26mA
-
-p2=plot(ylabel="normalized chirp",xlabel="time (mS)",legend=:bottomright,frame=:box,linestyle=:solid, linealpha=0.5, linewidth=4*upscale)
-for (index,value) in enumerate([10,20])
-    plot!(p2,time,chirp_result[value][1]./maximum(abs.(chirp_result[value][1])),label="26 mA $value mV")
-    plot!(p2,time,chirp_result2[value][1]./maximum(abs.(chirp_result2[value][1])),label="17mA $value mV")
-end
-display(p2)
-savefig("./figures/"*"chirp_16_26")
-
-combined_plot = plot(p, p2, layout=(2, 1),link=:x)
-display(combined_plot)
-savefig("./figures/combined_chirp_plot")
 
 #######################create a 2x1 plot of the max chirp and Delta I
 
@@ -72,26 +113,7 @@ gr()  # Set the backend to GR
 scaling=1/0.8
 fntsm = Plots.font("sans-serif", pointsize=round(12.0*upscale)*scaling)
 fntlg = Plots.font("sans-serif", pointsize=round(16.0*upscale)*scaling)
-
-p=plot(titlefont=fntlg, guidefont=fntlg, tickfont=fntsm, legendfont=fntsm,xlabel="modulation voltage (mV)", ylabel="chirp (pm)",xlims=(0, maximum(modulation_values)),ylims=(0, 90),frame=:box,linestyle=:solid, linealpha=0.5, linewidth=4*upscale,grid=false, left_margin=5mm,right_margin=5mm,buttom_margin=5mm)
-
-plot!(p,modulation_values, [chirp_result[value][1][end] for value in modulation_values]*1e12, label="chirp 26mA", color=:blue)
-# Add the second data series to the same plot
-plot!(p,modulation_values, [chirp_result2[value][1][end] for value in modulation_values]*1e12, label="chirp 17mA", color=:green)
-
-# Create a secondary axis for delta but do not create a label yet
-p2 = twinx()
-plot!(p2, modulation_values, [results[value][end][1]*I_0 for value in modulation_values], color=:blue, linestyle=:dash, label="", ylabel="ΔI (V)",xlims=(0, maximum(modulation_values)),ylims=(0,3),frame=:box,grid=true,titlefont=fntlg, guidefont=fntlg, tickfont=fntsm, legendfont=fntsm)
-plot!(p2, modulation_values, [results2[value][end][1]I_02 for value in modulation_values], color=:green,linestyle=:dash, label="")
-# Add dummy series for the secondary axis data (for legend purposes)
-plot!(p, [], [], label="ΔI 26mA", color=:blue,linestlye=:dash)
-plot!(p, [], [], label="ΔI 17mA", color=:green,linestyle=:dash)
-
-
-# Display the combined plot
-plot(p, p2, layout=(1,1)) 
-savefig("./figures/"*"chirp_vs_modulation_16_26.svg")
-
+1
 p=plot(ylabel="chirp (pm)",xlabel="modulation voltage",legend=:bottomright,xlims=(0, maximum(modulation_values)))
 plot!(p,modulation_values,[chirp_result[value][1][end] for value in modulation_values]*1e12,label="26mA")
 plot!(p,modulation_values,[chirp_result2[value][1][end] for value in modulation_values]*1e12,label="17mA")

@@ -16,7 +16,6 @@ GC.gc()
 #results=load_results("20240114__combined_results_stab")
 results=load_results("20240126_allan_26")
 results2=load_results("20240126_allan_17")
-@infiltrate 
 
 #############################################################################
 # written by chatgpt verified against https://tf.nist.gov/phase/Properties/four.htm
@@ -64,56 +63,103 @@ results=empty
 results2=empty
 GC.gc()
 
-#stop=length(variance[10])
-stop=250 #manually set the averaging. Confidence becomes very low. 
-xticks = ([1, 10, 100], ["1", "10", "100"])
-yticks=([.01,0.05],["0.01","0.05"])
-pf=plot(frame=:box,title="26 mA",xticks=xticks,yticks=yticks,label="Allan Deviation", xlabel="", ylabel="",  xscale=:log10, yscale=:log10,legend=:topright,linestyle=:solid, linealpha=0.5, linewidth=4*upscale)
-for (index,value) in enumerate(modulation_values)
-    plot!(pf, [1:stop],sqrt.(variance[value][1:stop])*1e12,label="$value mv")  #NB sqrt 
+# Define some example data
+total_width_in_inches = 3.5
+num_subplots = 2
+subplot_width_in_inches = total_width_in_inches 
+subplot_height_in_inches = subplot_width_in_inches/2#aspect_ratio
+fig, axs = plt.subplots(2, 1, figsize=(total_width_in_inches, total_width_in_inches))
+
+stop = 250  # Manually set the averaging.
+
+axs[1].set_title("26 mA")
+axs[1].set_xscale("log")
+axs[1].set_yscale("log")
+axs[1].set_xticks([1, 10, 100])
+axs[1].set_xticklabels(["1", "10", "100"])
+axs[1].set_yticks([0.01, 0.05])
+axs[1].set_yticklabels(["0.01", "0.05"])
+
+for (index, value) in enumerate(modulation_values)
+    axs[1].plot(1:stop, sqrt.(unfit_variance[value][1:stop]) * 1e12, label="$value mV")
 end
-display(pf)
+axs[1].legend(loc="upper right")
+
+axs[2].set_title("17 mA")
+axs[2].set_xscale("log")
+axs[2].set_yscale("log")
+axs[2].set_xticks([1, 10, 100])
+axs[2].set_xticklabels(["1", "10", "100"])
+axs[2].set_yticks([0.01, 0.05])
+axs[2].set_yticklabels(["0.01", "0.05"])
+# axs[1].grid(true)
+# Plot each line
+for (index, value) in enumerate(modulation_values)
+    axs[2].plot(1:stop, sqrt.(unfit_variance2[value][1:stop]) * 1e12, label="$value mV")
+end
+axs[1].legend(loc="upper right",framealpha=1)
+
+y_limits = axs[1].get_ylim()
+axs[2].set_ylim(y_limits)
+axs[2].set_xlabel(L"averageing time $\tau$ (ms)")
+
+fig.text(0.02, 0.5, "Allan deviation (1/THz)", va="center", rotation="vertical")
+# plt.subplots_adjust(left=0.15, right=0.15, top=0.15, bottom=0.15, hspace=0.4)  # Adjust margins and spacing
+plt.savefig("./matplotlibfigures/"*"combined_alan_deviation",dpi=800)
+
+# #stop=length(variance[10])
+# stop=250 #manually set the averaging. Confidence becomes very low. 
+# xticks = ([1, 10, 100], ["1", "10", "100"])
+# yticks=([.01,0.05],["0.01","0.05"])
+
+
+# pf=plot(frame=:box,title="26 mA",xticks=xticks,yticks=yticks,label="Allan Deviation", xlabel="", ylabel="",  xscale=:log10, yscale=:log10,legend=:topright,linestyle=:solid, linealpha=0.5, linewidth=4*upscale)
+# for (index,value) in enumerate(modulation_values)
+#     plot!(pf, [1:stop],sqrt.(variance[value][1:stop])*1e12,label="$value mv")  #NB sqrt 
+# end
+# display(pf)
 #savefig("./figures/"*"alan_deviation_fit")
 
-stop=250 #manually set the averaging. Confidence becomes very low. 
-xticks = ([1, 10, 100], ["1", "10", "100"])
-yticks=([.01,0.05],["0.01","0.05"])
-p=plot(frame=:box,title="26 mA",xticks=xticks,yticks=yticks,label="Allan Deviation", xlabel="", ylabel="",  xscale=:log10, yscale=:log10,legend=:topright,linestyle=:solid, linealpha=0.5, linewidth=4*upscale)
-for (index,value) in enumerate(modulation_values)
+# stop=250 #manually set the averaging. Confidence becomes very low. 
+# xticks = ([1, 10, 100], ["1", "10", "100"])
+# yticks=([.01,0.05],["0.01","0.05"])
+# p=plot(frame=:box,title="26 mA",xticks=xticks,yticks=yticks,label="Allan Deviation", xlabel="", ylabel="",  xscale=:log10, yscale=:log10,legend=:topright,linestyle=:solid, linealpha=0.5, linewidth=4*upscale)
+# for (index,value) in enumerate(modulation_values)
 
-    plot!(p, [1:stop],sqrt.(unfit_variance[value][1:250])*1e12,label="$value mv")  #NB sqrt 
-end
-display(p)
-#savefig("./figures/"*"alan_deviation_unfit")
+#     plot!(p, [1:stop],sqrt.(unfit_variance[value][1:250])*1e12,label="$value mv")  #NB sqrt 
+# end
+# display(p)
+# #savefig("./figures/"*"alan_deviation_unfit")
 
-stop=250 #manually set the averaging. Confidence becomes very low. 
-xticks = ([1, 10, 100], ["1", "10", "100"])
-yticks=([.01,0.05],["0.01","0.05"])
-p2f=plot(frame=:box,title="17 mA",legend=false,xticks=xticks,yticks=yticks,label="Allan Deviation", xlabel="Averaging time τ (mS) ", ylabel="Allan deviation (1/THz)",  xscale=:log10, yscale=:log10,linestyle=:solid, linealpha=0.5, linewidth=4*upscale)
-for (index,value) in enumerate(modulation_values)
-    plot!(p2f, [1:stop],sqrt.(variance2[value][1:stop])*1e12,label="$value mv")  #NB sqrt 
-end
-display(p2f)
-#savefig("./figures/"*"alan_deviation_fit_17")
+# stop=250 #manually set the averaging. Confidence becomes very low. 
+# xticks = ([1, 10, 100], ["1", "10", "100"])
+# yticks=([.01,0.05],["0.01","0.05"])
+# p2f=plot(frame=:box,title="17 mA",legend=false,xticks=xticks,yticks=yticks,label="Allan Deviation", xlabel="Averaging time τ (mS) ", ylabel="Allan deviation (1/THz)",  xscale=:log10, yscale=:log10,linestyle=:solid, linealpha=0.5, linewidth=4*upscale)
+# for (index,value) in enumerate(modulation_values)
+#     plot!(p2f, [1:stop],sqrt.(variance2[value][1:stop])*1e12,label="$value mv")  #NB sqrt 
+# end
+# display(p2f)
+# #savefig("./figures/"*"alan_deviation_fit_17")
 
-stop=250 #manually set the averaging. Confidence becomes very low. 
-xticks = ([1, 10, 100], ["1", "10", "100"])
-yticks=([.01,0.05],["0.01","0.05"])
-p2=plot(frame=:box,title="17 mA",legend=false,xticks=xticks,yticks=yticks,label="Allan Deviation", xlabel="Averaging time τ (mS) ", ylabel="Allan deviation (1/THz)",  xscale=:log10, yscale=:log10,linestyle=:solid, linealpha=0.5, linewidth=4*upscale)
-for (index,value) in enumerate(modulation_values)
-        plot!(p2, [1:250],sqrt.(unfit_variance2[value][1:250])*1e12,label="$value mv")  #NB sqrt 
-end
-display(p2)
-#savefig("./figures/"*"alan_deviation_unfit_17")
+
+# stop=250 #manually set the averaging. Confidence becomes very low. 
+# xticks = ([1, 10, 100], ["1", "10", "100"])
+# yticks=([.01,0.05],["0.01","0.05"])
+# p2=plot(frame=:box,title="17 mA",legend=false,xticks=xticks,yticks=yticks,label="Allan Deviation", xlabel="Averaging time τ (mS) ", ylabel="Allan deviation (1/THz)",  xscale=:log10, yscale=:log10,linestyle=:solid, linealpha=0.5, linewidth=4*upscale)
+# for (index,value) in enumerate(modulation_values)
+#         plot!(p2, [1:250],sqrt.(unfit_variance2[value][1:250])*1e12,label="$value mv")  #NB sqrt 
+# end
+# display(p2)
+# #savefig("./figures/"*"alan_deviation_unfit_17")
 
 #################################################################################################create 2x1 plot
-gr()
-combined_plot=plot(p,p2,layout=(2,1),link=:x,ylabel="Allan deviation (1/THz)")
-combined_plot_fit=plot(pf,p2f,layout=(2,1),link=:x,ylabel="Allan deviation (1/THz)")
-display(combined_plot)
-savefig("./figures/"*"combined_alan_deviation.svg")
+# gr()
+# combined_plot=plot(p,p2,layout=(2,1),link=:x,ylabel="Allan deviation (1/THz)")
+# combined_plot_fit=plot(pf,p2f,layout=(2,1),link=:x,ylabel="Allan deviation (1/THz)")
+# display(combined_plot)
+# savefig("./figures/"*"combined_alan_deviation.svg")
 
-#################################################################################find the slope of the derivative function 
+# #################################################################################find the slope of the derivative function 
 
 results=load_results("20240110__combined_results")
 #results2=load_results("20240110__combined_results_17")
