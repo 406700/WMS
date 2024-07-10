@@ -83,7 +83,7 @@ axs[1].set_yticklabels(["0.01", "0.05"])
 for (index, value) in enumerate(modulation_values)
     axs[1].plot(1:stop, sqrt.(unfit_variance[value][1:stop]) * 1e12, label="$value mV")
 end
-axs[1].legend(loc="upper right")
+axs[1].legend(loc="upper right",framealpha=1)
 
 axs[2].set_title("17 mA")
 axs[2].set_xscale("log")
@@ -104,9 +104,10 @@ axs[2].set_ylim(y_limits)
 axs[2].set_xlabel(L"averageing time $\tau$ (ms)")
 
 fig.text(0.02, 0.5, "Allan deviation (1/THz)", va="center", rotation="vertical")
-# plt.subplots_adjust(left=0.15, right=0.15, top=0.15, bottom=0.15, hspace=0.4)  # Adjust margins and spacing
-plt.savefig("./matplotlibfigures/"*"combined_alan_deviation",dpi=800)
-
+fig.subplots_adjust(left=0.15, right=0.99, top=0.94, bottom=0.12, wspace=0.3, hspace=0.4)
+plt.savefig("./matplotlibfigures/"*"combined_alan_deviation.png")
+plt.savefig("./matplotlibfigures/"*"combined_alan_deviation.eps")
+matplotlib.pyplot.close()
 # #stop=length(variance[10])
 # stop=250 #manually set the averaging. Confidence becomes very low. 
 # xticks = ([1, 10, 100], ["1", "10", "100"])
@@ -188,32 +189,44 @@ deviation2_unfit=[sqrt(unfit_variance2[value][10]) for value in modulation_value
 resolution_unfit=@. abs(deviation_unfit*c/λ_0^2/slope*1e15) #dI/dν*dν/dλ/ dI/dλ^2
 resolution2_unfit=@. abs(deviation2_unfit*c/λ_0^2/slope*1e15)
 
-scaling=1/0.8
-fntsm = Plots.font("sans-serif", pointsize=round(12.0*upscale)*scaling)
-fntlg = Plots.font("sans-serif", pointsize=round(16.0*upscale)*scaling)
-p=plot(titlefont=fntlg, guidefont=fntlg, tickfont=fntsm, legendfont=fntsm*0.8,frame=:box,xlabel="modulation values (mV)",ylabel="resolution (fm)",legend=:topright,linestyle=:solid, linealpha=0.5, linewidth=4*upscale)
-plot!(p,modulation_values,resolution,label="26 mA")
-plot!(p,modulation_values,resolution2,label="17 mA")
-savefig("./figures/"*"resolution")
+# scaling=1/0.8
+# fntsm = Plots.font("sans-serif", pointsize=round(12.0*upscale)*scaling)
+# fntlg = Plots.font("sans-serif", pointsize=round(16.0*upscale)*scaling)
+# p=plot(titlefont=fntlg, guidefont=fntlg, tickfont=fntsm, legendfont=fntsm*0.8,frame=:box,xlabel="modulation values (mV)",ylabel="resolution (fm)",legend=:topright,linestyle=:solid, linealpha=0.5, linewidth=4*upscale)
+# plot!(p,modulation_values,resolution,label="26 mA")
+# plot!(p,modulation_values,resolution2,label="17 mA")
+# savefig("./figures/"*"resolution")
 
-p=plot(ylims=(0,70),titlefont=fntlg, guidefont=fntlg, tickfont=fntsm, frame=:box,xlabel="modulation values (mV)",ylabel="resolution (fm)",linestyle=:solid, linealpha=0.5, linewidth=5*upscale,legend=:topright)
-plot!(p,modulation_values,resolution_unfit,label="26 mA")
-plot!(p,modulation_values,resolution2_unfit,label="17 mA")
-savefig("./figures/"*"resolution_unfit.svg")
+
+fig,axs=plt.subplots()
+axs.set_xlabel("modulation values (mV)")
+axs.set_ylabel("resolution (fm)")
+axs.plot(modulation_values,resolution_unfit,label="26 mA",marker=".")
+axs.plot(modulation_values,resolution2_unfit,label="17 mA",marker=".")
+axs.legend(loc="upper right", framealpha=1)
+axs.set_ylim((0,nothing))
+fig.tight_layout(pad=0.4)
+savefig("./matplotlibfigures/"*"resolution_unfit.png")
+savefig("./matplotlibfigures/"*"resolution_unfit.eps")
+matplotlib.pyplot.close()
+# p=plot(ylims=(0,70),titlefont=fntlg, guidefont=fntlg, tickfont=fntsm, frame=:box,xlabel="modulation values (mV)",ylabel="resolution (fm)",linestyle=:solid, linealpha=0.5, linewidth=5*upscale,legend=:topright)
+# plot!(p,modulation_values,resolution_unfit,label="26 mA")
+# plot!(p,modulation_values,resolution2_unfit,label="17 mA")
+# savefig("./figures/"*"resolution_unfit.svg")
 
 ##############################################################################check the scaled derivatives, are they at the same transmission value?
- plotlyjs()
- p=plot()
- for (index,value) in enumerate(modulation_values)
-     plot!(p,results[30][1],scaling_factors[index]*results[value][rkey["L_prime"]])
- end
- display(p)
+#  plotlyjs()
+#  p=plot()
+#  for (index,value) in enumerate(modulation_values)
+#      plot!(p,results[30][1],scaling_factors[index]*results[value][rkey["L_prime"]])
+#  end
+#  display(p)
 
- p=plot()
- for (index,value) in enumerate(modulation_values)
-     plot!(p,results[value][1],results[value][rkey["L"]])
- end
- display(p)
+#  p=plot()
+#  for (index,value) in enumerate(modulation_values)
+#      plot!(p,results[value][1],results[value][rkey["L"]])
+#  end
+#  display(p)
 
 # p=plot()
 # for (index,value) in enumerate(modulation_values)

@@ -1,6 +1,5 @@
 
 include("wms_main_functions.jl")
-
 # using PyCall
 # pyimport("matplotlib")
 # plt = pyimport("matplotlib.pyplot")
@@ -43,11 +42,13 @@ ax.set_ylabel(L"$|\Delta \lambda \langle h \rangle |$")
 ax.set_xlabel("modulation voltage (mV)")  # Optionally enforce fontsize
 ax.plot(modulation_values,abs.(Δν_h*λ_26^2/c*1e12),label="26 mA",marker=".")
 ax.plot(modulation_values,abs.(Δν_h2*λ_26^2/c*1e12),label="17 mA",linestyle="--",marker=".")
-plt.legend(loc="upper left")
+plt.legend(loc="upper left",framealpha=1)
+ax.set_ylim((0,nothing))
 # Show the plot
 plt.tight_layout(pad=0.4)
 plt.savefig("./matplotlibfigures/scaling_factors.png")
-
+plt.savefig("./matplotlibfigures/scaling_factors.eps")
+matplotlib.pyplot.close()
 # p=plot(xlabel="modulation voltage (mV)",ylabel="|Δλ<h>|",legend=:bottomright,xlims=(0, maximum(modulation_values)),ylims=(0,35),linestyle=:solid, linealpha=0.5, linewidth=4*upscale,left_margin=5mm*upscale,grid=false)
 # plot!(p,modulation_values,abs.(Δν_h*λ_26^2/c*1e12),label="26 mA")
 # plot!(p,modulation_values,abs.(Δν_h2*λ_26^2/c*1e12),label="17 mA")
@@ -77,23 +78,30 @@ for (index,value) in enumerate(modulation_values)
     ax.plot(centered_results[value][1]*1e12,centered_results[value][rkey["L"]],label="$flab mV")
 end
 ax.plot(centered_results[5][1]*1e12,centered_results[5][rkey["L_direct_avg"]],label=L"$T_0$")
-plt.legend(loc="upper left")
+plt.legend(loc="upper left",framealpha=1)
 # Show the plot
 plt.tight_layout(pad=0.4)
-plt.savefig("./matplotlibfigures/L.png",dpi=800)
+plt.savefig("./matplotlibfigures/L.png")
+plt.savefig("./matplotlibfigures/L.eps")
+matplotlib.pyplot.close()
+
 
 fig, ax = plt.subplots()
-ax.set_ylabel(L"$T'$ (1/Thz)")
-ax.set_xlabel("modulation voltage (mV)")  # Optionally enforce fontsize
+ax.set_ylabel(L"$T\prime$ (1/Thz)")
+ax.set_xlabel("wavelength shift (pm)")  # Optionally enforce fontsize
 for (index,value) in enumerate(modulation_values)
     flab=modulation_values[index]
     ax.plot(centered_results[value][1]*1e12,centered_results[value][rkey["L_prime"]].*scaling_factors[index]*1e12,label="$flab mV")
 end
-ax.plot(centered_results[5][1]*1e12,centered_results[5][rkey["L_prime_direct"]]*1e12,label=L"$T_0'$")#"\$T\\prime_0\$"
-plt.legend(loc="upper left")
+ax.plot(centered_results[5][1]*1e12,centered_results[5][rkey["L_prime_direct"]]*1e12,label=L"$T_0\prime$")#"\$T\\prime_0\$"
+plt.legend(loc="upper left",framealpha=1)
+
 # Show the plot
 plt.tight_layout(pad=0.4)
-plt.savefig("./matplotlibfigures/L_prime.png",dpi=800)
+plt.savefig("./matplotlibfigures/L_prime.png")
+plt.savefig("./matplotlibfigures/L_prime.eps")
+matplotlib.pyplot.close()
+
 
 #p=plot(xlabel="wavelength shift (pm)",ylabel=L"L",linestyle=:solid, linealpha=0.5, linewidth=4*upscale,frame=:box,left_margin=5mm*upscale,grid=false)
 # for (index,value) in enumerate(modulation_values)
@@ -149,7 +157,7 @@ scaling=scaling_factors[[2,4,6]]
 div_error=Dict()
 
 fig, ax = plt.subplots()
-ax.set_ylabel(L"$L^\prime-L_0^\prime$ (1/THz)")
+ax.set_ylabel(L"$T^\prime-T_0^\prime$ (1/THz)")
 ax.set_xlabel("wavelength shift (pm)")  # Optionally enforce fontsize
 for (index,value) in enumerate(modulation_values)
     flab=modulation_values[index]
@@ -157,10 +165,13 @@ for (index,value) in enumerate(modulation_values)
     div_error[value]=er
     ax.plot(centered_results[5][1]*1e12,div_error[value]*1e12, label="$flab mV")
 end
-plt.legend(loc="upper left")
+plt.legend(loc="upper right",framealpha=1)
 # Show the plot
 plt.tight_layout(pad=0.4)
-plt.savefig("./matplotlibfigures/derivative_errors",dpi=800)
+plt.savefig("./matplotlibfigures/derivative_errors.png")
+plt.savefig("./matplotlibfigures/derivative_errors.eps")
+
+matplotlib.pyplot.close()
 
 
 # modulation_values=[10,20,30]
@@ -200,33 +211,33 @@ plt.savefig("./matplotlibfigures/derivative_errors",dpi=800)
 string="data_config_"*"20"*"ma.jl"
 include(string)
 FP,time=load_and_return_raw_data(fp_file,ld_file,fp_direct_file,ld_direct_file)
-####################plots
+# ####################plots
 
-gr()
+# gr()
 
-inset_time=0.55
+# inset_time=0.55
 
-p=plot(xlabel="time (S)",ylabel="Signal (V)",linestyle=:solid, linealpha=0.5, linewidth=4*upscale,frame=:box,legend=false,left_margin=5mm,bottom_margin=10mm*upscale,grid=false)
-plot!(p,time[1:100:end],FP[1:100:end])
-# #savefig(p,"./figures/raw_data_1.png")
+# p=plot(xlabel="time (S)",ylabel="Signal (V)",linestyle=:solid, linealpha=0.5, linewidth=4*upscale,frame=:box,legend=false,left_margin=5mm,bottom_margin=10mm*upscale,grid=false)
+# plot!(p,time[1:100:end],FP[1:100:end])
+# # #savefig(p,"./figures/raw_data_1.png")
 
-vline!([inset_time],label="")
-p2=plot(xlabel="time (S)",ylabel="Signal (V)",linestyle=:solid, linealpha=0.5, linewidth=4*upscale,frame=:box,legend=false,left_margin=10mm,bottom_margin=10mm*upscale,grid=false)
-idx=findfirst(x->x>inset_time,time)
-plot!(p2,time[idx:1:idx+200000],FP[idx:1:idx+200000],label="")
-# #savefig(p2,"./figures/raw_data_2.png")
-
-
-combined_plot = plot(p, p2, layout=(2, 1))
-#savefig("./figures/raw_data.ps")
+# vline!([inset_time],label="")
+# p2=plot(xlabel="time (S)",ylabel="Signal (V)",linestyle=:solid, linealpha=0.5, linewidth=4*upscale,frame=:box,legend=false,left_margin=10mm,bottom_margin=10mm*upscale,grid=false)
+# idx=findfirst(x->x>inset_time,time)
+# plot!(p2,time[idx:1:idx+200000],FP[idx:1:idx+200000],label="")
+# # #savefig(p2,"./figures/raw_data_2.png")
 
 
-l = @layout [a b]
-ylabel!(p2,"")
-combined_plot = plot(p, p2, layout=2,legend=false,link=:y,size=(600*3.5,(600*3.5)/2))
-# savefig("./figures/raw_data_sidebyside.png")
+# combined_plot = plot(p, p2, layout=(2, 1))
+# #savefig("./figures/raw_data.ps")
 
-#######################################################3#using matplotlib from PyPlot
+
+# l = @layout [a b]
+# ylabel!(p2,"")
+# combined_plot = plot(p, p2, layout=2,legend=false,link=:y,size=(600*3.5,(600*3.5)/2))
+# # savefig("./figures/raw_data_sidebyside.png")
+
+# #######################################################3#using matplotlib from PyPlot
 #
 # Set the DPI (resolution)
 #overide default aspect ratios
@@ -262,5 +273,5 @@ axs[2].set_ylim(ylim)
 # Display the combined plot
 plt.tight_layout(pad=0.4)
 
-plt.savefig("./matplotlibfigures/raw_data2",dpi=800)
-
+plt.savefig("./matplotlibfigures/raw_data2.png")
+plt.savefig("./matplotlibfigures/raw_data2.eps")

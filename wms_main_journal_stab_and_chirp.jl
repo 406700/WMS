@@ -103,49 +103,111 @@ axs[2].legend(loc="lower right",framealpha=1)
 fig.tight_layout(pad=0.4)
 # Save the combined figure
 fig.savefig("./matplotlibfigures/combined_chirp_plot.png")
-
+fig.savefig("./matplotlibfigures/combined_chirp_plot.eps")
+matplotlib.pyplot.close()
 
 #######################create a 2x1 plot of the max chirp and Delta I
 
 ###twin plot of chirp and delta im
-gr()  # Set the backend to GR
-# Create the first plot with the actual data
-scaling=1/0.8
-fntsm = Plots.font("sans-serif", pointsize=round(12.0*upscale)*scaling)
-fntlg = Plots.font("sans-serif", pointsize=round(16.0*upscale)*scaling)
-1
-p=plot(ylabel="chirp (pm)",xlabel="modulation voltage",legend=:bottomright,xlims=(0, maximum(modulation_values)))
-plot!(p,modulation_values,[chirp_result[value][1][end] for value in modulation_values]*1e12,label="26mA")
-plot!(p,modulation_values,[chirp_result2[value][1][end] for value in modulation_values]*1e12,label="17mA")
-############################################################################################################# fit the chirp 
-chirp_fitted=Dict()
-for (index,value) in enumerate(modulation_values)
-    chirp =chirp_result[value][1]
-    x=1:length(chirp)
-    fit=fitlinear(x[15000:end],chirp[15000:end])
-    chirp_fitted[value]=fit.y[end]
-end
-plot(modulation_values,[chirp_fitted[value] for value in modulation_values])
+fig, ax1=plt.subplots()
 
-chirp_fitted_17=Dict()
-for (index,value) in enumerate(modulation_values)
-    chirp =chirp_result2[value][1]
-    x=1:length(chirp)
-    fit=fitlinear(x[15000:end],chirp[15000:end])
-    chirp_fitted_17[value]=fit.y[end]
-end
-plot!(modulation_values,[chirp_fitted_17[value] for value in modulation_values])
+# Plotting on the primary y-axis
+ax1.plot(modulation_values, [chirp_result[value][1][end] for value in modulation_values]*1e12, label="chirp 26mA", color=:"b",marker=".")
+ax1.set_xlabel("modulation voltage (mV)")
+ax1.set_ylabel("chirp (pm)")
+ax1.plot(modulation_values, [chirp_result2[value][1][end] for value in modulation_values]*1e12, label="chirp 17mA", color="g",marker=".")
+ax1.set_ylim((0,90))
+# Create a second y-axis
+ax2 = ax1.twinx()
+ax2.set_ylim((0,3))
+
+ax2.set_ylabel(L"$\Delta$I (V)")
+ax2.plot(modulation_values, [results[value][end][1]*I_0 for value in modulation_values], color="b", linestyle="--", label=L"$\Delta$I 26mA")
+ax2.plot(modulation_values, [results2[value][end][1]I_02 for value in modulation_values], color="g",linestyle="--",label=L"$\Delta$I 17mA")
+# Adding legends
+# ax1.legend(loc="upper left",framealpha=1)
+fig.legend(loc=(0.15,0.7),framealpha=1)
+fig.tight_layout(pad=0.4)
+fig.savefig("./matplotlibfigures/"*"chirp_vs_modulation_16_26.png")
+fig.savefig("./matplotlibfigures/"*"chirp_vs_modulation_16_26.eps")
+matplotlib.pyplot.close()
+
+# Show the plot
+# gr()  # Set the backend to GR
+# # Create the first plot with the actual data
+# scaling=1/0.8
+# fntsm = Plots.font("sans-serif", pointsize=round(12.0*upscale)*scaling)
+# fntlg = Plots.font("sans-serif", pointsize=round(16.0*upscale)*scaling)
+
+# p=plot(titlefont=fntlg, guidefont=fntlg, tickfont=fntsm, legendfont=fntsm,xlabel="modulation voltage (mV)", ylabel="chirp (pm)",xlims=(0, maximum(modulation_values)),ylims=(0, 90),frame=:box,linestyle=:solid, linealpha=0.5, linewidth=4*upscale,grid=false, left_margin=5mm,right_margin=5mm,buttom_margin=5mm)
+
+# plot!(p,modulation_values, [chirp_result[value][1][end] for value in modulation_values]*1e12, label="chirp 26mA", color=:blue)
+# # Add the second data series to the same plot
+# plot!(p,modulation_values, [chirp_result2[value][1][end] for value in modulation_values]*1e12, label="chirp 17mA", color=:green)
+
+# # Create a secondary axis for delta but do not create a label yet
+# p2 = twinx()
+# plot!(p2, modulation_values, [results[value][end][1]*I_0 for value in modulation_values], color=:blue, linestyle=:dash, label="", ylabel="ΔI (V)",xlims=(0, maximum(modulation_values)),ylims=(0,3),frame=:box,grid=true,titlefont=fntlg, guidefont=fntlg, tickfont=fntsm, legendfont=fntsm)
+# plot!(p2, modulation_values, [results2[value][end][1]I_02 for value in modulation_values], color=:green,linestyle=:dash, label="")
+# # Add dummy series for the secondary axis data (for legend purposes)
+# plot!(p, [], [], label="ΔI 26mA", color=:blue,linestlye=:dash)
+# plot!(p, [], [], label="ΔI 17mA", color=:green,linestyle=:dash)
+
+
+# # Display the combined plot
+# plot(p, p2, layout=(1,1)) 
+# # savefig("./figures/"*"chirp_vs_modulation_16_26.svg")
+
+# p=plot(ylabel="chirp (pm)",xlabel="modulation voltage",legend=:bottomright,xlims=(0, maximum(modulation_values)))
+# plot!(p,modulation_values,[chirp_result[value][1][end] for value in modulation_values]*1e12,label="26mA")
+# plot!(p,modulation_values,[chirp_result2[value][1][end] for value in modulation_values]*1e12,label="17mA")
+# ############################################################################################################# fit the chirp 
+# chirp_fitted=Dict()
+# for (index,value) in enumerate(modulation_values)
+#     chirp =chirp_result[value][1]
+#     x=1:length(chirp)
+#     fit=fitlinear(x[15000:end],chirp[15000:end])
+#     chirp_fitted[value]=fit.y[end]
+# end
+# plot(modulation_values,[chirp_fitted[value] for value in modulation_values])
+
+# chirp_fitted_17=Dict()
+# for (index,value) in enumerate(modulation_values)
+#     chirp =chirp_result2[value][1]
+#     x=1:length(chirp)
+#     fit=fitlinear(x[15000:end],chirp[15000:end])
+#     chirp_fitted_17[value]=fit.y[end]
+# end
+# plot!(modulation_values,[chirp_fitted_17[value] for value in modulation_values])
 
 ############################################################################################################# create figure showing frequency noise
+
 FP_array=results[20][rkey["FP_array"]]
 FP_rollmean= mapslices(col -> rollmean(col, 200), FP_array, dims=1)
 time=range(start=0.0,step=0.000000016,length=length(FP_rollmean[:,1]))*1000
-p=plot( xlabel="time (mS)", ylabel=L"I_{fp}/I_{ld}",frame=:box,linestyle=:solid, linealpha=0.5, linewidth=4*upscale,grid=false)
+fig,axs=plt.subplots()
+axs.set_xlabel("time (ms)")
+axs.set_ylabel(L"$I_{fp}/I_{ld}$")
 for index in 1:5
-    plot!(p,time,FP_rollmean[:,index], label="cycle $index")
+    axs.plot(time,FP_rollmean[:,index], label="cycle $index")
 end
-display(p)
-savefig("./figures/frequency_noise.svg")
+axs.plot()
+fig.tight_layout(pad=0.4)
+axs.legend(loc="upper right",framealpha=1)
+fig.savefig("./matplotlibfigures/frequency_noise.png")
+fig.savefig("./matplotlibfigures/frequency_noise.eps")
+
+matplotlib.pyplot.close()
+
+# FP_array=results[20][rkey["FP_array"]]
+# FP_rollmean= mapslices(col -> rollmean(col, 200), FP_array, dims=1)
+# time=range(start=0.0,step=0.000000016,length=length(FP_rollmean[:,1]))*1000
+# p=plot( xlabel="time (mS)", ylabel=L"I_{fp}/I_{ld}",frame=:box,linestyle=:solid, linealpha=0.5, linewidth=4*upscale,grid=false)
+# for index in 1:5
+#     plot!(p,time,FP_rollmean[:,index], label="cycle $index")
+# end
+# display(p)
+# savefig("./figures/frequency_noise.svg")
 
 
 
@@ -198,4 +260,4 @@ savefig("./figures/frequency_noise.svg")
     # simple_chirp_estimate_stab(FP_rollmean[:,1:25],L_direct_avg,λ)
 
     ####################################################################################direct chirp estimate without fitting.
- =#
+ 

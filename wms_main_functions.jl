@@ -12,20 +12,21 @@ function set_default_font(font_path::String)
     font_name = font_prop.get_name()
     rcParams["font.family"] = font_name
 end
-set_default_font("/usr/share/fonts/truetype/msttcorefonts/Arial.ttf")
+set_default_font("/usr/share/fonts/truetype/msttcorefonts/Times_New_Roman.ttf")
 
 # Set default figure size
 total_width_in_inches = 3.5
-aspect_ratio=3/4
+aspect_ratio=2.5/4
 # rcParams["text.usetex"]=true #keep off for now due to font uses. only use if necessary.
 rcParams["figure.figsize"] = (total_width_in_inches, total_width_in_inches*aspect_ratio)
 rcParams["figure.dpi"] = 800
-rcParams["lines.linewidth"]=0.4
+rcParams["lines.linewidth"]=0.6
 rcParams["axes.titlesize"]=8
 rcParams["xtick.labelsize"]=6
 rcParams["ytick.labelsize"]=6
 rcParams["legend.fontsize"]=6
 rcParams["figure.titlesize"]=8
+rcParams["mathtext.default"]="regular"
 # rcParams["lines.marker"] = "."  # Set default marker
 rcParams["lines.markersize"] = 4 
 # plt.rcParams.update({
