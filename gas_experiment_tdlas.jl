@@ -1,46 +1,12 @@
-function find_scan_turning_points(ref_chan)
-    data_points_per_half_scan_period=Int(65e6)
-    turning_points = Int[]
 
-    first_turning_point=findmin(ref_chan[1:data_points_per_half_scan_period])[2]
-    push!(turning_points,first_turning_point)
-    # 2. Find subsequent trigger points by searching in a window centered ahead
-    window_size = Int(1e7)  # Number of data points to search in each window
-    half_window = window_size÷2
-    i=1
-    while true
-        # Expected index is data_points_per_half_period ahead of the last trigger point
-        expected_index = turning_points[end] + data_points_per_half_scan_period
-        if expected_index > length(ref_chan)
-            break  # Exit if expected index exceeds data length
-        end
+include("gas_experiment_functions.jl")
 
-        # Define the search window centered around the expected index
-        window_start = Int(expected_index - half_window)
-        window_end = Int(min(expected_index + half_window, length(ref_chan))) #keeps in bounds
-        local_indices = window_start:window_end
-        local_data = ref_chan[local_indices]
-        if isodd(i)
-            min_difference, min_idx = findmax(local_data)
-        else
-            min_difference, min_idx = findmin(local_data)
-        end
-      
-
-    
-        # Get the actual index in ref_chan
-        turning_point = local_indices[min_idx]
-        push!(turning_points, turning_point)
-        i=i+1
-    end
-   
-    return turning_points
-end
-
-include("gas_experiment_main.jl")
-
+global const sampling_rate=1e6
+global const mod_rate=2e3
+global const data_points_per_period=sampling_rate/mod_rate
+global const data_points_per_half_period=round(Int,data_points_per_period/2)
 # readdir("data")
-# det_data_path="gas_start2.mat"
+det_data_path="gas_start2.mat"
 
 # ld_data_path="LD_temp_file_with_modulation.txt"
 # ld_data=readdlm("data/"*ld_data_path)
@@ -55,23 +21,88 @@ include("gas_experiment_main.jl")
 
 
 ref_chan,sig_chan=read_det_data(det_data_path,0.995) #trigger level, determines when laser powers on and off
-# ref_chan, sig_chan=divide_scans(ref_chan, sig_chan,131900000,(119000000+66000000))
-
-# ref_chan, sig_chan=divide_scans(ref_chan, sig_chan,9000000,length(ref_chan))
 turning_points=find_scan_turning_points(ref_chan)
+ref_chan,sig_chan=normalize_channels_tdlas(ref_chan,sig_chan,Int(data_points_per_period))
 
-plot(ref_chan[1:100:end])
+ref_chan_dict = Dict{Int, Vector{Float64}}()
+sig_chan_dict = Dict{Int, Vector{Float16}}()
+number_scans = length(turning_points) - 1
 
-downsample=1000
+GC.gc()
+
+for index in 1:number_scans
+    key = index  # Using integers as keys
+    range = turning_points[index]:turning_points[index+1]  # Define the range once
+    if isodd(index)
+        ref_chan_dict[key] = ref_chan[range]
+        sig_chan_dict[key] = @view sig_chan[range]
+    else
+        ref_chan_dict[key] = reverse!(@view ref_chan[range])
+        sig_chan_dict[key] = reverse!(@view sig_chan[range])
+    end
+end
+GC.gc()
+# Create directories to store slices
+try readdir("ref_chan_data")
+catch
+    mkdir("ref_chan_data")
+    mkdir("sig_chan_data")
+end
+# Memory-map each slice in the dictionary
+for key in keys(ref_chan_dict)
+    # Save ref_chan slice
+    open("ref_chan_data/$key.bin", "w") do file
+        write(file, ref_chan_dict[key])
+    end
+    # Map the file to an array
+    ref_chan_dict[key] = Mmap.mmap(
+        "ref_chan_data/$key.bin",
+        Vector{eltype(ref_chan_dict[key])},
+        length(ref_chan_dict[key])
+    )
+
+    # Save sig_chan slice
+    open("sig_chan_data/$key.bin", "w") do file
+        write(file, sig_chan_dict[key])
+    end
+    # Map the file to an array
+    sig_chan_dict[key] = Mmap.mmap(
+        "sig_chan_data/$key.bin",
+        Vector{eltype(sig_chan_dict[key])},
+        length(sig_chan_dict[key])
+    )
+end
+sig_chan=nothing
+ref_chan=nothing
+GC.gc()
+for index in 1:number_scans
+
+    key = index  # Convert index to a string for the key
+    ref_chan=ref_chan_dict[key] 
+    sig_chan=sig_chan_dict[key] 
+    downsample=1000
+    ref_trig_level_slope,ref_trig_level_intercept=find_ref_trigger_level(ref_chan,downsample)#calculate a new reference level for trimmed and normalized data
+    ref_chan,sig_chan=divide_scan_by_slope(ref_chan,sig_chan,ref_trig_level_slope,ref_trig_level_intercept)
+
+    ref_chan_dict[key] = ref_chan
+    sig_chan_dict[key] = sig_chan
+end
+GC.gc()
+
+p=plot()
+for i in 1:number_scans
+    plot!(p,rollmean(sig_chan_dict[i][1:1000:end],1000))
+end
+display(p)
 # ref_trig_level_slope,ref_trig_level_intercept=find_ref_trigger_level(ref_chan,downsample)
 # trig_indices=find_pulse_trig_points(ref_chan,ref_trig_level_intercept,ref_trig_level_slope,data_points_per_half_period)
 # ref_chan,sig_chan,trig_indices=trim_channels(ref_chan,sig_chan,trig_indices)
-ref_chan,sig_chan=normalize_channels_tdlas(ref_chan,sig_chan,Int(data_points_per_period))
-ref_trig_level_slope,ref_trig_level_intercept=find_ref_trigger_level(ref_chan,downsample)#calculate a new reference level for trimmed and normalized data
-ref_chan,sig_chan=divide_scan_by_slope(ref_chan,sig_chan,ref_trig_level_slope,ref_trig_level_intercept)
+# ref_chan,sig_chan=normalize_channels_tdlas(ref_chan,sig_chan,Int(data_points_per_period))
+# ref_trig_level_slope,ref_trig_level_intercept=find_ref_trigger_level(ref_chan,downsample)#calculate a new reference level for trimmed and normalized data
+# ref_chan,sig_chan=divide_scan_by_slope(ref_chan,sig_chan,ref_trig_level_slope,ref_trig_level_intercept)
 
 
 # L,L_prime,i_p,i_m=calculate_L_L_prime_for_scan(ref_chan,sig_chan,trig_indices,ref_trig_level_slope,ref_trig_level_intercept)
-plot(rollmean(ref_chan,10000)[1:100:end])
-plot(rollmean(sig_chan,10000)[1:100:end])
+# plot(rollmean(ref_chan,10000)[1:100:end])
+# plot(rollmean(sig_chan,10000)[1:100:end])
 
