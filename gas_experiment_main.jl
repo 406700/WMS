@@ -1,4 +1,4 @@
-using MAT,DelimitedFiles,Dates,Plots,Statistics,EasyFit
+using MAT,DelimitedFiles,Dates,Plots,Statistics,EasyFit,RollingFunctions
 
 #should rise and fall times be equivalent?
 
@@ -37,8 +37,8 @@ function read_det_data(det_data_path,trig_level)
 end
 
 
-function divide_scans(sig_chan,ref_chan)
-    return sig_chan[1:66000000],ref_chan[1:66000000]
+function divide_scans(ref_chan, sig_chan,start_index,stop_index)
+    return ref_chan[start_index:stop_index],sig_chan[start_index:stop_index]
 end
 
 function find_ref_trigger_level(ref_chan,downsample)
@@ -119,14 +119,15 @@ function average_values(ref_chan,rise_time,trig_indices,I_0) #already normalized
     return i_plus/I_0,i_minus/I_0 #NB not exactly I_0 but accounts for the difference in the intensity over time
 end
 
-function calculate_L_L_prime_for_scan(sig_chan,ref_chan,trig_indices,ref_trig_level_slope,ref_trig_level_intercept)
+function calculate_L_L_prime_for_scan(ref_chan, sig_chan,trig_indices,ref_trig_level_slope,ref_trig_level_intercept)
     trigger_level(x) = ref_trig_level_slope *x .+ ref_trig_level_intercept
     rise_time=7
     fall_time=2 #NB should be equivalent to be safe #the rise time of the intensity signal from the trigger point. total risetime = 2x risetime
     
     L= []
     L_prime=[]
-    
+    i_plus_all=[]
+    i_minus_all=[]
     for i in 1:2:(length(trig_indices)-2) #the start of every period
         local_data=sig_chan[trig_indices[i]:trig_indices[i+2]]
         I_0=trigger_level(trig_indices[i+1])
@@ -141,8 +142,10 @@ function calculate_L_L_prime_for_scan(sig_chan,ref_chan,trig_indices,ref_trig_le
         i_plus, i_minus = average_values(local_data,rise_time,trig_indices[i:i+2],I_0) #
         push!(L,L0(i_plus, i_minus, Δim))
         push!(L_prime, L0_prime(i_plus, i_minus, Δν_h, Δim) )
+        push!(i_minus_all,i_minus)
+        push!(i_plus_all,i_plus)
     end
-    return L,L_prime
+    return L,L_prime,i_plus_all,i_minus_all
 end
 
 function prompt_for_integer()
@@ -179,7 +182,19 @@ function normalize_channels(ref_chan,sig_chan,trig_indices)
     sig_chan=sig_chan./mean(sig_chan[trig_indices[1]:trig_indices[3]])
     return ref_chan,sig_chan
 end
+function normalize_channels_tdlas(ref_chan,sig_chan,length)
+    ref_chan=ref_chan/mean(ref_chan[1:length])
+    sig_chan=sig_chan/mean(sig_chan[1:length])
 
+    return ref_chan,sig_chan
+end
+function divide_scan_by_slope(ref_chan,sig_chan,ref_trig_level_slope,ref_trig_level_intercept)
+    trigger_level(x) = ref_trig_level_slope *x + ref_trig_level_intercept
+    trigger_levels=trigger_level.([1:length(ref_chan);])
+    ref_chan=ref_chan./trigger_levels
+    sign_chan=sig_chan./trigger_levels
+    return ref_chan,sig_chan
+end
 det_data_path="with_modulation.mat"
 
 ld_data_path="LD_temp_file_with_modulation.txt"
@@ -195,7 +210,7 @@ scan_points=ld_data["time"][alternate_vectors(min_indices,max_indices)] #get the
 
 
 ref_chan,sig_chan=read_det_data(det_data_path,0.995) #trigger level, determines when laser powers on and off
-sig_chan,ref_chan=divide_scans(sig_chan,ref_chan)
+ref_chan, sig_chan=divide_scans(ref_chan, sig_chan,1,6600000)
 
 global const sampling_rate=1e6
 global const mod_rate=2e3
@@ -209,9 +224,11 @@ ref_chan,sig_chan,trig_indices=trim_channels(ref_chan,sig_chan,trig_indices)
 ref_chan,sig_chan=normalize_channels(ref_chan,sig_chan,trig_indices)
 ref_trig_level_slope,ref_trig_level_intercept=find_ref_trigger_level(ref_chan,downsample)#calculate a new reference level for trimmed and normalized data
 
-L,L_prime=calculate_L_L_prime_for_scan(ref_chan,sig_chan,trig_indices,ref_trig_level_slope,ref_trig_level_intercept)
+L,L_prime,i_p,i_m=calculate_L_L_prime_for_scan(ref_chan,sig_chan,trig_indices,ref_trig_level_slope,ref_trig_level_intercept)
 
-_
+
 plot(L)
 plot(L_prime)
 plot(sig_chan[1:1000:end])
+plot(i_p)
+plot(i_m)
