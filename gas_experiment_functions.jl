@@ -250,7 +250,10 @@ function trim_channels(ref_chan,sig_chan,trig_indices,first_trigger)
 end
 
 function normalize_channels(ref_chan,sig_chan,trig_indices)
-    ref_chan=ref_chan./mean(ref_chan[trig_indices[1]:trig_indices[3]])
+    ref_mean=sum(ref_chan[trig_indices[1]:trig_indices[3]])/(trig_indices[3]-trig_indices[1])
+    sig_mean=sum(sig_chan[trig_indices[1]:trig_indices[3]])/(trig_indices[3]-trig_indices[1])
+
+    ref_chan=ref_chan./ref_mean
     sig_chan=sig_chan./mean(sig_chan[trig_indices[1]:trig_indices[3]])
     return ref_chan,sig_chan
 end
