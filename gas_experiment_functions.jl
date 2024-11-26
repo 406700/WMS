@@ -49,8 +49,8 @@ function divide_scans_by_time(time_chan,temp_data,temp_time)
     #assumes scan starts at a minima and ends at a minima
     min=minimum(temp_data)
     max=maximum(temp_data)
-    max_points=findall(x->x==max,temp_data)[2]
-    min_points=findall(x->x==min,temp_data)[2]
+    max_points=findall(x->x==max,temp_data)
+    min_points=findall(x->x==min,temp_data)
     turning_points=vcat(min_points,max_points)
     turning_points=sort(turning_points)
     time_points=temp_time[turning_points]
@@ -125,7 +125,7 @@ end
 function find_pulse_trig_points(ref_chan, ref_trig_level_intercept, ref_trig_level_slope,data_points_per_half_period)
     trig_indices = Int[]
     length_ref_chan = length(ref_chan)
-    trig_tolerance = 100  # Adjust as needed, for unnormalized data.
+    trig_tolerance = 250  # Adjust as needed, for unnormalized data.
 
     first_trig_index=findmin(abs.(ref_chan[1:data_points_per_half_period].-ref_trig_level_intercept))[2]
     push!(trig_indices,first_trig_index)
@@ -154,7 +154,7 @@ function find_pulse_trig_points(ref_chan, ref_trig_level_intercept, ref_trig_lev
         min_difference, min_idx = findmin(differences)
 
         if min_difference > trig_tolerance
-            error("Trigger point not found within tolerance at index $expected_index.")
+            error("Trigger point not found within tolerance at index $expected_index. sig=$(local_data[min_idx]), trig level=$local_trig_level")
         end
 
         # Get the actual index in ref_chan

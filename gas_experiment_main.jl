@@ -46,12 +46,13 @@ trig_indices=find_pulse_trig_points(ref_chan,ref_trig_level_intercept,ref_trig_l
 ref_chan,sig_chan,trig_indices=trim_channels(ref_chan,sig_chan,trig_indices)
 ref_chan,sig_chan=normalize_channels(ref_chan,sig_chan,trig_indices)
 ref_trig_level_slope,ref_trig_level_intercept=find_ref_trigger_level(ref_chan,downsample)#calculate a new reference level for trimmed and normalized data
+GC.gc()
 
 L,L_prime,i_p,i_m=calculate_L_L_prime_for_scan(ref_chan,sig_chan,trig_indices,ref_trig_level_slope,ref_trig_level_intercept)
 
 
-plot(L)
-plot(L_prime)
-plot(sig_chan[1:1000:end])
-plot(i_p)
-plot(i_m)
+# plot(L)
+# plot(L_prime)
+# plot(sig_chan[1:1000:end])
+# plot(i_p)
+# plot(i_m)
