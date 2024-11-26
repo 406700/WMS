@@ -1,5 +1,5 @@
 
-include("gas_experiment_functions.jl")
+include("gas_experiment_functions.jl") 
 global const sampling_rate=1e6
 global const mod_rate=2e3
 global const data_points_per_period=sampling_rate/mod_rate
@@ -29,18 +29,60 @@ GC.gc()
 
 #coordinate the scans 
 
-divide_scans_by_time(time_chan,ld_data["temp_setpoint"],ld_data["time"])
-# findmax(ld_data["temp_setpoint"])
-# max_indices=findall(x->x==21,ld_data["temp_setpoint"])
-# findmin(ld_data["temp_setpoint"]) 
-# min_indices=findall(x->x==17.0,ld_data["temp_setpoint"])
-# scan_points=sort(vcat(min_indices,max_indices))
+det_turning_points,ld_turning_points=divide_scans_by_time(time_chan,ld_data["temp_setpoint"],ld_data["time"])
 
-# ref_chan,sig_chan=read_det_data(det_data_path,0.995) #trigger level, determines when laser powers on and off
-# ref_chan, sig_chan=divide_scans(ref_chan, sig_chan,1,6600000)
+ref_chan_dict = Dict{Int, Vector{Float16}}()
+sig_chan_dict = Dict{Int, Vector{Float16}}()
+time_chan_dict = Dict{Int, Vector{Float16}}()
+
+number_scans = length(det_turning_points) - 1
+
+GC.gc()
+
+for index in 1:number_scans
+    key = index  # Using integers as keys
+    range = det_turning_points[index]:det_turning_points[index+1]  # Define the range once
+    if isodd(index)
+        ref_chan_dict[key] = ref_chan[range]
+        sig_chan_dict[key] = sig_chan[range]
+        time_chan_dict[key] = time_chan[range]
+
+    else
+        ref_chan_dict[key] = reverse!(ref_chan[range])
+        sig_chan_dict[key] = reverse!(sig_chan[range])
+        time_chan_dict[key] = reverse!(time_chan[range])
+
+    end
+end
+ref_chan=nothing
+sig_chan=nothing
+GC.gc()
 
 
-downsample=1000
+temp_setpoint_dict = Dict{Int, Vector{Float64}}()
+temp_sensor_dict = Dict{Int, Vector{Float64}}()
+time_ld_dict = Dict{Int, Vector{Float64}}()
+
+number_scans = length(det_turning_points) - 1
+for index in 1:number_scans
+    key = index  # Using integers as keys
+    range = ld_turning_points[index]:ld_turning_points[index+1]  # Define the range once
+    if isodd(index)
+        temp_setpoint_dict[key] = ld_data["temp_setpoint"][range]
+        temp_sensor_dict[key] = ld_data["temp_sensor"][range]
+    else
+        temp_setpoint_dict[key] = reverse!(ld_data["temp_setpoint"][range])
+        temp_sensor_dict[key] = reverse!(ld_data["temp_sensor"][range])
+    end
+end
+ld_data=nothing
+GC.gc()
+
+i=3
+ref_chan=ref_chan_dict[i]
+sig_chan=sig_chan_dict[i]
+time_chan=time_chan_dict[i]
+downsample=100
 ref_trig_level_slope,ref_trig_level_intercept=find_ref_trigger_level(ref_chan,downsample)
 trig_indices=find_pulse_trig_points(ref_chan,ref_trig_level_intercept,ref_trig_level_slope,data_points_per_half_period)
 ref_chan,sig_chan,trig_indices=trim_channels(ref_chan,sig_chan,trig_indices)
@@ -50,9 +92,9 @@ GC.gc()
 
 L,L_prime,i_p,i_m=calculate_L_L_prime_for_scan(ref_chan,sig_chan,trig_indices,ref_trig_level_slope,ref_trig_level_intercept)
 
-
-# plot(L)
-# plot(L_prime)
+plot(L)
+gui(plt)
+push!(p,plt)    
 # plot(sig_chan[1:1000:end])
 # plot(i_p)
 # plot(i_m)

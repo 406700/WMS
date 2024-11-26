@@ -39,7 +39,7 @@ function read_det_data(det_data_path,trig_level)
     sig_chan=read(matfile,"AI_Ch0")[start_trigger:stop_trigger]
     time_chan=read(matfile,"AI_Ch0_Xms")[start_trigger:stop_trigger]
     close(matfile)
-    return ref_chan[start_trigger:stop_trigger],sig_chan,time_chan
+    return ref_chan[start_trigger:stop_trigger],sig_chan,time_chan.-time_chan[1]
 
 end
 function divide_scans_by_time(time_chan,temp_data,temp_time)
@@ -55,7 +55,7 @@ function divide_scans_by_time(time_chan,temp_data,temp_time)
     turning_points=sort(turning_points)
     time_points=temp_time[turning_points]
     time_chan_indices=[findmin(abs.(time_chan.-x))[2] for x in time_points]
-    return time_chan_indices
+    return time_chan_indices,turning_points
 end
 function find_scan_turning_points(ref_chan,scan_period)
     data_points_per_half_scan_period=Int(scan_period*1/2*sampling_rate) 
@@ -232,14 +232,14 @@ function prompt_for_integer()
 
 end
 
-function trim_channels(ref_chan,sig_chan,trig_indices)
+function trim_channels(ref_chan,sig_chan,trig_indices,first_trigger)
     foo=2000 #amount of data to plot
     x_values = 1:length(ref_chan[1:foo])
     p=plot()
     plot!(p,x_values, ref_chan[1:foo], label="Signal (ref_chan)", xlabel="Index", ylabel="Amplitude", title="Signal with Trigger Level and Trigger Points")
     scatter!(p,trig_indices[1:5], ref_chan[trig_indices[1:5]], color=:red, marker=:circle, label="Trigger Points")
     # gui(p)
-    first_trig_point=2#prompt_for_integer()
+    first_trig_point=first_trigger#prompt_for_integer()
     trig_indices=trig_indices[first_trig_point:end]
     if iseven(length(trig_indices)) #make sure it is an odd number of trig indices. 3 per period+2 each additional period.
         trig_indices=trig_indices[1:end-1]
