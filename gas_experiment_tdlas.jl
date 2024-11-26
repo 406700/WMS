@@ -4,9 +4,12 @@ include("gas_experiment_functions.jl")
 global const sampling_rate=1e6
 global const mod_rate=2e3
 global const data_points_per_period=sampling_rate/mod_rate
-global const data_points_per_half_period=round(Int,data_points_per_period/2)
+scan_time=200
+# global const data_points_per_half_period=round(Int,data_points_per_period/2)
 # readdir("data")
-det_data_path="gas_start2.mat"
+data=readdir("data/20241125/")
+# data_list=["gas_start2.mat","20241125/5min_gas.mat","20241125/no_gas.mat"]
+det_data_path="20241125/"*data[4]
 
 # ld_data_path="LD_temp_file_with_modulation.txt"
 # ld_data=readdlm("data/"*ld_data_path)
@@ -20,8 +23,11 @@ det_data_path="gas_start2.mat"
 # scan_points=ld_data["time"][alternate_vectors(min_indices,max_indices)] #get the time stamps for all the max and min points of the temperature scan. 
 
 
-ref_chan,sig_chan=read_det_data(det_data_path,0.995) #trigger level, determines when laser powers on and off
-turning_points=find_scan_turning_points(ref_chan)
+data,a,b=read_det_data(det_data_path,0.995) #trigger level, determines when laser powers on and off
+ref_chan=view(data["AI_Ch0"],:)
+sig_chan=view(data["AI_Ch1"],:)
+
+turning_points=find_scan_turning_points(ref_chan,scan_time)
 ref_chan,sig_chan=normalize_channels_tdlas(ref_chan,sig_chan,Int(data_points_per_period))
 
 ref_chan_dict = Dict{Int, Vector{Float64}}()
@@ -72,7 +78,7 @@ for key in keys(ref_chan_dict)
         length(sig_chan_dict[key])
     )
 end
-sig_chan=nothing
+fsig_chan=nothing
 ref_chan=nothing
 GC.gc()
 for index in 1:number_scans
@@ -87,6 +93,8 @@ for index in 1:number_scans
     ref_chan_dict[key] = ref_chan
     sig_chan_dict[key] = sig_chan
 end
+ref_chan=nothing
+sig_chan=nothing
 GC.gc()
 
 p=plot()

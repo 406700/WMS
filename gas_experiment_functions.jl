@@ -1,17 +1,6 @@
-using MAT,DelimitedFiles,Dates,Plots,Statistics,EasyFit,RollingFunctions
+using MAT,DelimitedFiles,Dates,Plots,Statistics,EasyFit,RollingFunctions,Mmap
 
 #should rise and fall times be equivalent?
-
-function alternate_vectors(a, b)
-    n = length(b)  # Length of the shorter vector `b`
-    result = Vector{eltype(a)}()  # Create an empty vector of the appropriate type
-        for i in 1:n
-        push!(result, a[i])  # Add element from `a`
-        push!(result, b[i])  # Add element from `b`
-    end
-    push!(result, a[n+1])  # Add the last remaining element from `a`
-    return result
-end
 function optimized_findfirst(ref_chan,trig_level)
     threshold = trig_level * maximum(ref_chan)  # Precompute the threshold
     for (i, val) in enumerate(ref_chan)  # Iterate through the array with indices
@@ -22,20 +11,103 @@ function optimized_findfirst(ref_chan,trig_level)
     return nothing  # Return nothing if no element matches
 end
 
+# function read_det_data(det_data_path,trig_level)
+#     data=matread("data/"*det_data_path) 
+#     delete!(data, "Timestamps_us\0\0\0")
+#     delete!(data, "AI_Ch1_Xms")
+#     GC.gc()
+#     ref_chan=view(data["AI_Ch0"],:)
+#     start_trigger=optimized_findfirst(ref_chan,trig_level)
+#     stop_trigger=optimized_findfirst(reverse(ref_chan),trig_level)
+#     stop_trigger=length(ref_chan)-stop_trigger
+#     # for key in keys(data)
+#     #     data[key] = data[key][start_trigger:stop_trigger]
+#     # end
+#     return data,stop_trigger,start_trigger
+#     # sig_chan=sig_chan[start_trigger:stop_trigger]
+#     # ref_chan=ref_chan[start_trigger:stop_trigger]
+#     # return ref_chan,sig_chan
+# end
 function read_det_data(det_data_path,trig_level)
-    matfile=matopen("data/"*det_data_path)   #Use with read, write, close, keys, and haskey.
-    sig_chan=read(matfile, "AI_Ch1")
-    ref_chan=read(matfile, "AI_Ch0")
-    close(matfile)
-
+    
+    matfile=matopen(det_data_path)
+    ref_chan=read(matfile, "AI_Ch0")[:]
     start_trigger=optimized_findfirst(ref_chan,trig_level)
     stop_trigger=optimized_findfirst(reverse(ref_chan),trig_level)
     stop_trigger=length(ref_chan)-stop_trigger
-    sig_chan=sig_chan[start_trigger:stop_trigger]
-    ref_chan=ref_chan[start_trigger:stop_trigger]
-    return ref_chan,sig_chan
-end
+    GC.gc()
+    sig_chan=read(matfile,"AI_Ch0")[start_trigger:stop_trigger]
+    time_chan=read(matfile,"AI_Ch0_Xms")[start_trigger:stop_trigger]
+    close(matfile)
+    return ref_chan[start_trigger:stop_trigger],sig_chan,time_chan
 
+end
+function divide_scans_by_time(time_chan,temp_data,temp_time)
+    #time must be in same format, not the trigger on the det data sets the accuracy of the allignment.
+    #also, any drift in clocks will not be accounted for, unless normalizing the ellapsed time for both data sets. 
+
+    #assumes scan starts at a minima and ends at a minima
+    min=minimum(temp_data)
+    max=maximum(temp_data)
+    max_points=findall(x->x==max,temp_data)[2]
+    min_points=findall(x->x==min,temp_data)[2]
+    turning_points=vcat(min_points,max_points)
+    turning_points=sort(turning_points)
+    time_points=temp_time[turning_points]
+    time_chan_indices=[findmin(abs.(time_chan.-x))[2] for x in time_points]
+    return time_chan_indices
+end
+function find_scan_turning_points(ref_chan,scan_period)
+    data_points_per_half_scan_period=Int(scan_period*1/2*sampling_rate) 
+    turning_points = Int[]
+
+    first_turning_point=findmin(ref_chan[1:Int(data_points_per_half_scan_period*1.2)])[2]
+    push!(turning_points,first_turning_point)
+    # 2. Find subsequent trigger points by searching in a window centered ahead
+    window_size = 0.1*data_points_per_half_scan_period  # Number of data points to search in each window
+    half_window = window_size÷2
+    i=1
+    while true
+        # Expected index is data_points_per_half_period ahead of the last trigger point
+        expected_index = turning_points[end] + data_points_per_half_scan_period
+        if expected_index > length(ref_chan)
+            break  # Exit if expected index exceeds data length
+        end
+
+        # Define the search window centered around the expected index
+        window_start = Int(expected_index - half_window)
+        window_end = Int(min(expected_index + half_window, length(ref_chan))) #keeps in bounds
+        local_indices = window_start:window_end
+        local_data = ref_chan[local_indices]
+        if isodd(i)
+            min_difference, min_idx = findmax(local_data)
+        else
+            min_difference, min_idx = findmin(local_data)
+        end
+      
+
+    
+        # Get the actual index in ref_chan
+        turning_point = local_indices[min_idx]
+        push!(turning_points, turning_point)
+        i=i+1
+    end
+   
+    return turning_points
+end
+# function read_det_data(det_data_path,trig_level)
+#     matfile=matopen("data/"*det_data_path)   #Use with read, write, close, keys, and haskey.
+#     sig_chan=read(matfile, "AI_Ch1")
+#     ref_chan=read(matfile, "AI_Ch0")
+#     close(matfile)
+
+#     start_trigger=optimized_findfirst(ref_chan,trig_level)
+#     stop_trigger=optimized_findfirst(reverse(ref_chan),trig_level)
+#     stop_trigger=length(ref_chan)-stop_trigger
+#     sig_chan=sig_chan[start_trigger:stop_trigger]
+#     ref_chan=ref_chan[start_trigger:stop_trigger]
+#     return ref_chan,sig_chan
+# end
 
 function divide_scans(ref_chan, sig_chan,start_index,stop_index)
     return ref_chan[start_index:stop_index],sig_chan[start_index:stop_index]
@@ -195,14 +267,14 @@ function divide_scan_by_slope(ref_chan,sig_chan,ref_trig_level_slope,ref_trig_le
     sign_chan=sig_chan./trigger_levels
     return ref_chan,sig_chan
 end
-function find_scan_turning_points(ref_chan)
-    data_points_per_half_scan_period=Int(6.5e7)
+function find_scan_turning_points(ref_chan,scan_period)
+    data_points_per_half_scan_period=Int(scan_period*1/2*sampling_rate) 
     turning_points = Int[]
 
-    first_turning_point=findmin(ref_chan[1:data_points_per_half_scan_period])[2]
+    first_turning_point=findmin(ref_chan[1:Int(data_points_per_half_scan_period*1.2)])[2]
     push!(turning_points,first_turning_point)
     # 2. Find subsequent trigger points by searching in a window centered ahead
-    window_size = Int(1e7)  # Number of data points to search in each window
+    window_size = 0.1*data_points_per_half_scan_period  # Number of data points to search in each window
     half_window = window_size÷2
     i=1
     while true
