@@ -9,7 +9,7 @@ scan_time=200
 # readdir("data")
 data=readdir("data/20241125/")
 # data_list=["gas_start2.mat","20241125/5min_gas.mat","20241125/no_gas.mat"]
-det_data_path="20241125/"*data[4]
+det_data_path="20241125/"*"5min_gas.mat"
 
 # ld_data_path="LD_temp_file_with_modulation.txt"
 # ld_data=readdlm("data/"*ld_data_path)

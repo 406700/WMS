@@ -1,4 +1,4 @@
-using MAT,DelimitedFiles,Dates,Plots,Statistics,EasyFit,RollingFunctions,Mmap
+using MAT,DelimitedFiles,Dates,Plots,Statistics,EasyFit,RollingFunctions,Mmap,Serialization
 
 #should rise and fall times be equivalent?
 function optimized_findfirst(ref_chan,trig_level)

@@ -1,5 +1,7 @@
 
 include("gas_experiment_functions.jl") 
+load_det_data=true
+
 global const sampling_rate=1e6
 global const mod_rate=2e3
 global const data_points_per_period=sampling_rate/mod_rate
@@ -18,65 +20,91 @@ end
 det_data_path="data/20241125/10min_mod2.mat"
 ld_data_path="20241125/LD_temp_file_with_modulation_10min_gas.txt"
 ld_data=load_ld_data(ld_data_path)
+if load_det_data == false
+    
+    #load and configure to det data
 
-#load and configure to det data
+    ref_chan,sig_chan,time_chan=read_det_data(det_data_path,0.995) #trigger level, determines when laser powers on and off
+    GC.gc()
+    # ref_chan=view(data["AI_Ch0"],:)
+    # sig_chan=view(data["AI_Ch1"],:)
+    # time_chan=view(data["AI_Ch0_Xms"],:)
 
-ref_chan,sig_chan,time_chan=read_det_data(det_data_path,0.995) #trigger level, determines when laser powers on and off
-GC.gc()
-# ref_chan=view(data["AI_Ch0"],:)
-# sig_chan=view(data["AI_Ch1"],:)
-# time_chan=view(data["AI_Ch0_Xms"],:)
+    #coordinate the scans 
 
-#coordinate the scans 
+    det_turning_points,ld_turning_points=divide_scans_by_time(time_chan,ld_data["temp_setpoint"],ld_data["time"])
 
-det_turning_points,ld_turning_points=divide_scans_by_time(time_chan,ld_data["temp_setpoint"],ld_data["time"])
+    ref_chan_dict = Dict{Int, Vector{Float64}}()
+    sig_chan_dict = Dict{Int, Vector{Float64}}()
+    time_chan_dict = Dict{Int, Vector{Float64}}()
 
-ref_chan_dict = Dict{Int, Vector{Float64}}()
-sig_chan_dict = Dict{Int, Vector{Float64}}()
-time_chan_dict = Dict{Int, Vector{Float64}}()
+    number_scans = length(det_turning_points) - 1
 
-number_scans = length(det_turning_points) - 1
+    GC.gc()
 
-GC.gc()
+    for index in 1:number_scans
+        key = index  # Using integers as keys
+        range = det_turning_points[index]:det_turning_points[index+1]  # Define the range once
+        if isodd(index)
+            ref_chan_dict[key] = ref_chan[range]
+            sig_chan_dict[key] = sig_chan[range]
+            time_chan_dict[key] = time_chan[range]
 
-for index in 1:number_scans
-    key = index  # Using integers as keys
-    range = det_turning_points[index]:det_turning_points[index+1]  # Define the range once
-    if isodd(index)
-        ref_chan_dict[key] = ref_chan[range]
-        sig_chan_dict[key] = sig_chan[range]
-        time_chan_dict[key] = time_chan[range]
+        else
+            ref_chan_dict[key] = reverse!(ref_chan[range])
+            sig_chan_dict[key] = reverse!(sig_chan[range])
+            time_chan_dict[key] = reverse!(time_chan[range])
 
-    else
-        ref_chan_dict[key] = reverse!(ref_chan[range])
-        sig_chan_dict[key] = reverse!(sig_chan[range])
-        time_chan_dict[key] = reverse!(time_chan[range])
-
+        end
     end
-end
-ref_chan=nothing
-sig_chan=nothing
-GC.gc()
+    ref_chan=nothing
+    sig_chan=nothing
+    GC.gc()
 
 
-temp_setpoint_dict = Dict{Int, Vector{Float64}}()
-temp_sensor_dict = Dict{Int, Vector{Float64}}()
-time_ld_dict = Dict{Int, Vector{Float64}}()
+    temp_setpoint_dict = Dict{Int, Vector{Float64}}()
+    temp_sensor_dict = Dict{Int, Vector{Float64}}()
+    time_ld_dict = Dict{Int, Vector{Float64}}()
 
-number_scans = length(det_turning_points) - 1
-for index in 1:number_scans
-    key = index  # Using integers as keys
-    range = ld_turning_points[index]:ld_turning_points[index+1]  # Define the range once
-    if isodd(index)
-        temp_setpoint_dict[key] = ld_data["temp_setpoint"][range]
-        temp_sensor_dict[key] = ld_data["temp_sensor"][range]
-    else
-        temp_setpoint_dict[key] = reverse!(ld_data["temp_setpoint"][range])
-        temp_sensor_dict[key] = reverse!(ld_data["temp_sensor"][range])
+    number_scans = length(det_turning_points) - 1
+    for index in 1:number_scans
+        key = index  # Using integers as keys
+        range = ld_turning_points[index]:ld_turning_points[index+1]  # Define the range once
+        if isodd(index)
+            temp_setpoint_dict[key] = ld_data["temp_setpoint"][range]
+            temp_sensor_dict[key] = ld_data["temp_sensor"][range]
+        else
+            temp_setpoint_dict[key] = reverse!(ld_data["temp_setpoint"][range])
+            temp_sensor_dict[key] = reverse!(ld_data["temp_sensor"][range])
+        end
     end
+    ld_data=nothing
+    GC.gc()
+ # Save all six dictionaries to disk
+    open(det_data_path[1:end-3]*"bin", "w") do io
+        serialize(io, (
+            ref_chan_dict,
+            sig_chan_dict,
+            time_chan_dict,
+            temp_setpoint_dict,
+            temp_sensor_dict,
+            time_ld_dict
+        ))
 end
-ld_data=nothing
-GC.gc()
+else
+    # Load all six dictionaries from disk
+    (
+        ref_chan_dict,
+        sig_chan_dict,
+        time_chan_dict,
+        temp_setpoint_dict,
+        temp_sensor_dict,
+        time_ld_dict
+    ) = open(det_data_path[1:end-3]*"bin", "r") do io
+        deserialize(io)
+end
+end
+
 
 i=3
 ref_chan=ref_chan_dict[i];
