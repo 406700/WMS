@@ -134,7 +134,7 @@ end
 function find_pulse_trig_points(ref_chan, ref_trig_level_intercept, ref_trig_level_slope,data_points_per_half_period)
     trig_indices = Int[]
     length_ref_chan = length(ref_chan)
-    trig_tolerance = 250  # Adjust as needed, for unnormalized data.
+    trig_tolerance = Int(250*sampling_rate/1e6)  # Adjust as needed, for unnormalized data.
 
     first_trig_index=findmin(abs.(ref_chan[1:data_points_per_half_period].-ref_trig_level_intercept))[2]
     push!(trig_indices,first_trig_index)
@@ -170,8 +170,8 @@ function find_pulse_trig_points(ref_chan, ref_trig_level_intercept, ref_trig_lev
         trig_index = local_indices[min_idx]
         push!(trig_indices, trig_index)
     end
-    if maximum(diff(diff(trig_indices))) >5
-        error("finding trig indices: variation in period > 5 sample")
+    if maximum(diff(diff(trig_indices))) >(5*sampling_rate/1e6)
+        error("finding trig indices: variation in period $(maximum(diff(diff(trig_indices))))> 5 sample")
     end
     return trig_indices
 end

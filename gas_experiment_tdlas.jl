@@ -10,11 +10,18 @@ load_det_data=true
 # readdir("data")
 
 # det_data_path="data/20241125/5min_gas_1125.mat"
-# # ld_data_path="20241125/LD_temp_file_5min_gas.txt"
-det_data_path="data/20241127/direct/5min_gas_no_mod.mat"
-ld_data_path="data/20241127/direct/5min_gas_no_mod.txt"
+# # # ld_data_path="20241125/LD_temp_file_5min_gas.txt"
+# det_data_path="data/20241127/direct/5min_gas_no_mod.mat" #working
+# ld_data_path="data/20241127/direct/5min_gas_no_mod.txt"
 # det_data_path="data/20241127/reference/no_gas_ref2.mat"#nb stopped after 1 cycle, didn't capture full rise.
 # ld_data_path="data/20241127/reference/no_gas_reference2.txt"
+
+#######################################################################20241128
+
+det_data_path="data/20241128/gas_no_mod.mat" #bin exists ?? dividing by time error
+ld_data_path="data/20241128/gas_no_mod.txt"
+
+
 ld_data=load_ld_data(ld_data_path)
 
 # findmax(ld_data["temp_setpoint"])
@@ -176,6 +183,7 @@ for key in 1:3
     ref_chan=ref_chan_dict[key] 
     sig_chan=sig_chan_dict[key] 
     downsample=1000
+
     ref_chan,sig_chan=normalize_channels_tdlas(ref_chan,sig_chan,Int(data_points_per_period))
     ref_trig_level_slope,ref_trig_level_intercept=find_ref_trigger_level(ref_chan,downsample)#calculate a new reference level for trimmed and normalized data
     ref_chan,sig_chan=divide_scan_by_slope(ref_chan,sig_chan,ref_trig_level_slope,ref_trig_level_intercept)
@@ -187,11 +195,21 @@ ref_chan=nothing
 sig_chan=nothing
 GC.gc()
 
+# p=plot()
+# for i in 1:3
+#     plot!(p,(ref_chan_dict[i][1:1000:end]))
+# end
+# display(p)
+
 p=plot()
-for i in 1:3
-    plot!(p,(ref_chan_dict[i][1:1000:end]))
+for key in keys(ref_chan_dict)
+    datas=rollmean((sig_chan_dict[key].-ref_chan_dict[key]),100)
+    plot!(p,datas[1:100:end])
+    # plot!(p,L_dict[key])
 end
-display(p)
+# display(p)
+savefig(det_data_path[1:end-3]*"sig_chan_minus_ref.png")
+
 # ref_trig_level_slope,ref_trig_level_intercept=find_ref_trigger_level(ref_chan,downsample)
 # trig_indices=find_pulse_trig_points(ref_chan,ref_trig_level_intercept,ref_trig_level_slope,data_points_per_half_period)
 # ref_chan,sig_chan,trig_indices=trim_channels(ref_chan,sig_chan,trig_indices)

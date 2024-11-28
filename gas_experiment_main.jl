@@ -1,6 +1,6 @@
 
 include("gas_experiment_functions.jl") 
-load_det_data=false
+load_det_data=true
 
 global const sampling_rate=1e6
 global const mod_rate=2e3
@@ -9,7 +9,11 @@ global const data_points_per_half_period=round(Int,data_points_per_period/2)
 
 
 # det_data_path="data/20241125/5min_gas.mat"
-# ld_data_path="20241127/LD_temp_file_with_modulation_10min_gas.txt"
+# ld_data_path="data/20241127/LD_temp_file_with_modulation_10min_gas.txt"
+
+
+det_data_path="data/20241125/10min_mod2.mat" #working
+ld_data_path="data/20241125/LD_temp_file_with_modulation_10min_gas.txt"
 
 # det_data_path="data/20241125/5min_gas_1125.mat"
 # ld_data_path="data/20241125/LD_temp_file_5min_gas.txt"
@@ -18,12 +22,24 @@ global const data_points_per_half_period=round(Int,data_points_per_period/2)
 # det_data_path="data/20241127/mod_10/10min_gas_mod_10.mat" #??
 # ld_data_path="data/20241127/mod_10/10min_gas_mod_10.txt"
 
-det_data_path="data/20241127/2Mhz_mod_20/10min_gas_mod_20_2MHz.mat"
-ld_data_path="data/20241127/2Mhz_mod_20/10min_gas_mod_20_2MHz.txt"
-global const sampling_rate=2e6
+# det_data_path="data/20241127/2Mhz_mod_20/10min_gas_mod_20_2MHz.mat" #bin exists ?? dividing by time error
+# ld_data_path="data/20241127/2Mhz_mod_20/10min_gas_mod_20_2MHz.txt"
+
+##############################################################################################################20241128
+
+# det_data_path="data/20241128/5min_gas_no_mod.mat" #bin exists ?? dividing by time error
+# ld_data_path="data/20241128/5min_gas_no_mod.txt"
+
+
+# det_data_path="data/20241128/gas_mod10.mat" #bin exists ?? dividing by time error
+# ld_data_path="data/20241128/gas_mod10.txt"
+
+# det_data_path="data/20241128/gas_mod20.mat" #bin exists ?? dividing by time error
+# ld_data_path="data/20241128/gas_mod20.txt"
 
 ld_data=load_ld_data(ld_data_path)
 if load_det_data == false
+
     
     #load and configure to det data
 
@@ -36,7 +52,7 @@ if load_det_data == false
     #coordinate the scans 
 
     det_turning_points,ld_turning_points=divide_scans_by_time(time_chan,ld_data["temp_setpoint"],ld_data["time"])
-
+    
     ref_chan_dict = Dict{Int, Vector{Float64}}()
     sig_chan_dict = Dict{Int, Vector{Float64}}()
     time_chan_dict = Dict{Int, Vector{Float64}}()
@@ -114,13 +130,13 @@ L_prime_dict = Dict{Int, Array{Float64}}()
 
 # Loop over all keys in the dictionaries
 for i in keys(ref_chan_dict)
+    println(i)
     # Extract the channels for the current key
     ref_chan = ref_chan_dict[i]
     sig_chan = sig_chan_dict[i]
     time_chan = time_chan_dict[i]
 
     downsample = 100
-
     # Find reference trigger level
     ref_trig_level_slope, ref_trig_level_intercept = find_ref_trigger_level(ref_chan, downsample)
 
@@ -135,7 +151,9 @@ for i in keys(ref_chan_dict)
 
     # Recalculate the reference trigger level for trimmed and normalized data
     ref_trig_level_slope, ref_trig_level_intercept = find_ref_trigger_level(ref_chan, downsample)
-
+    ref_chan_dict[i]= ref_chan 
+    sig_chan_dict[i] = sig_chan
+    time_chan_dict[i] = time_chan
     # Run garbage collection
     GC.gc()
 
@@ -151,6 +169,15 @@ for key in keys(L_prime_dict)
     # plot!(p,L_dict[key])
 end
 display(p)
+savefig(det_data_path[1:end-3]*"_L_prime.png")
+
+p=plot()
+for key in keys(L_prime_dict)
+    plot!(p,L_dict[key])
+    # plot!(p,L_dict[key])
+end
+display(p)
+savefig(det_data_path[1:end-3]*"_L.png")
 # plot(sig_chan[1:100:end])
 # plot!(sig_chan[Int(1e6):Int(1e6)+500]) 
 # plot(i_p)
