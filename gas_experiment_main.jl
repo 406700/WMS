@@ -1,4 +1,3 @@
-
 include("gas_experiment_functions.jl") 
 load_det_data=true
 
@@ -178,6 +177,8 @@ for key in keys(L_prime_dict)
 end
 display(p)
 savefig(det_data_path[1:end-3]*"_L.png")
+
+writedlm("det_data_path[1:end-3]"*"_L",L_dict[1])
 # plot(sig_chan[1:100:end])
 # plot!(sig_chan[Int(1e6):Int(1e6)+500]) 
 # plot(i_p)
