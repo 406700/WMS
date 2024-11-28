@@ -1,24 +1,27 @@
 
 include("gas_experiment_functions.jl") 
-load_det_data=true
+load_det_data=false
 
 global const sampling_rate=1e6
 global const mod_rate=2e3
 global const data_points_per_period=sampling_rate/mod_rate
 global const data_points_per_half_period=round(Int,data_points_per_period/2)
-function load_ld_data(ld_data_path)
-    ld_data=readdlm("data/"*ld_data_path)
-    ld_time=DateTime.(ld_data[:,3], "yyyy-mm-ddTHH:MM:SS.sss")
-    ld_time=convert.(Int,Dates.value.(ld_time.-ld_time[1]))#convert to int milliseconds from start
-    temp_set=convert.(Float64,ld_data[:,1])
-    temp_sens=convert.(Float64,ld_data[:,2])
-    ld_data=Dict("temp_setpoint"=>temp_set,"temp_sensor"=>temp_sens,"time"=>ld_time)
-    return ld_data
-end
 
 
-det_data_path="data/20241125/10min_mod2.mat"
-ld_data_path="20241125/LD_temp_file_with_modulation_10min_gas.txt"
+# det_data_path="data/20241125/5min_gas.mat"
+# ld_data_path="20241127/LD_temp_file_with_modulation_10min_gas.txt"
+
+# det_data_path="data/20241125/5min_gas_1125.mat"
+# ld_data_path="data/20241125/LD_temp_file_5min_gas.txt"
+
+
+# det_data_path="data/20241127/mod_10/10min_gas_mod_10.mat" #??
+# ld_data_path="data/20241127/mod_10/10min_gas_mod_10.txt"
+
+det_data_path="data/20241127/2Mhz_mod_20/10min_gas_mod_20_2MHz.mat"
+ld_data_path="data/20241127/2Mhz_mod_20/10min_gas_mod_20_2MHz.txt"
+global const sampling_rate=2e6
+
 ld_data=load_ld_data(ld_data_path)
 if load_det_data == false
     
@@ -106,23 +109,51 @@ end
 end
 
 
-i=3
-ref_chan=ref_chan_dict[i];
-sig_chan=sig_chan_dict[i];
-time_chan=time_chan_dict[i];
-downsample=100
-ref_trig_level_slope,ref_trig_level_intercept=find_ref_trigger_level(ref_chan,downsample)
-trig_indices=find_pulse_trig_points(ref_chan,ref_trig_level_intercept,ref_trig_level_slope,data_points_per_half_period)
-ref_chan,sig_chan,trig_indices=trim_channels(ref_chan,sig_chan,trig_indices,2)
-ref_chan,sig_chan=normalize_channels(ref_chan,sig_chan,trig_indices)
-ref_trig_level_slope,ref_trig_level_intercept=find_ref_trigger_level(ref_chan,downsample)#calculate a new reference level for trimmed and normalized data
-GC.gc()
+L_dict = Dict{Int, Array{Float64}}()
+L_prime_dict = Dict{Int, Array{Float64}}()
 
-L,L_prime,i_p,i_m=calculate_L_L_prime_for_scan(ref_chan,sig_chan,trig_indices,ref_trig_level_slope,ref_trig_level_intercept)
+# Loop over all keys in the dictionaries
+for i in keys(ref_chan_dict)
+    # Extract the channels for the current key
+    ref_chan = ref_chan_dict[i]
+    sig_chan = sig_chan_dict[i]
+    time_chan = time_chan_dict[i]
 
-plot(ref_chan[1:100:end])
-gui(plt)
-push!(p,plt)    
+    downsample = 100
+
+    # Find reference trigger level
+    ref_trig_level_slope, ref_trig_level_intercept = find_ref_trigger_level(ref_chan, downsample)
+
+    # Find trigger indices
+    trig_indices = find_pulse_trig_points(ref_chan, ref_trig_level_intercept, ref_trig_level_slope, data_points_per_half_period)
+
+    # Trim channels
+    ref_chan, sig_chan, trig_indices = trim_channels(ref_chan, sig_chan, trig_indices, 2)
+
+    # Normalize channels
+    ref_chan, sig_chan = normalize_channels(ref_chan, sig_chan, trig_indices)
+
+    # Recalculate the reference trigger level for trimmed and normalized data
+    ref_trig_level_slope, ref_trig_level_intercept = find_ref_trigger_level(ref_chan, downsample)
+
+    # Run garbage collection
+    GC.gc()
+
+    # Calculate L and L_prime for the current scan
+    L_dict[i],L_prime_dict[i],_,_ = calculate_L_L_prime_for_scan(ref_chan, sig_chan, trig_indices, ref_trig_level_slope, ref_trig_level_intercept)
+
+    # Store results in the dictionary
+    
+end
+p=plot()
+for key in keys(L_prime_dict)
+    plot!(p,L_prime_dict[key])
+    # plot!(p,L_dict[key])
+end
+display(p)
+# plot(sig_chan[1:100:end])
+# plot!(sig_chan[Int(1e6):Int(1e6)+500]) 
+# plot(i_p)
 # plot(sig_chan[1:1000:end])
 # plot(i_p)
 # plot(i_m)

@@ -36,7 +36,7 @@ function read_det_data(det_data_path,trig_level)
     stop_trigger=optimized_findfirst(reverse(ref_chan),trig_level)
     stop_trigger=length(ref_chan)-stop_trigger
     GC.gc()
-    sig_chan=read(matfile,"AI_Ch0")[start_trigger:stop_trigger]
+    sig_chan=read(matfile,"AI_Ch1")[start_trigger:stop_trigger]
     time_chan=read(matfile,"AI_Ch0_Xms")[start_trigger:stop_trigger]
     close(matfile)
     return ref_chan[start_trigger:stop_trigger],sig_chan,time_chan.-time_chan[1]
@@ -94,6 +94,15 @@ function find_scan_turning_points(ref_chan,scan_period)
     end
    
     return turning_points
+end
+function load_ld_data(ld_data_path)
+    ld_data=readdlm(ld_data_path)
+    ld_time=DateTime.(ld_data[:,3], "yyyy-mm-ddTHH:MM:SS.sss")
+    ld_time=convert.(Int,Dates.value.(ld_time.-ld_time[1]))#convert to int milliseconds from start
+    temp_set=convert.(Float64,ld_data[:,1])
+    temp_sens=convert.(Float64,ld_data[:,2])
+    ld_data=Dict("temp_setpoint"=>temp_set,"temp_sensor"=>temp_sens,"time"=>ld_time)
+    return ld_data
 end
 # function read_det_data(det_data_path,trig_level)
 #     matfile=matopen("data/"*det_data_path)   #Use with read, write, close, keys, and haskey.
@@ -201,15 +210,16 @@ function calculate_L_L_prime_for_scan(ref_chan, sig_chan,trig_indices,ref_trig_l
     i_plus_all=[]
     i_minus_all=[]
     for i in 1:2:(length(trig_indices)-2) #the start of every period
+        #calculate a new ΔIm and I0
         local_data=sig_chan[trig_indices[i]:trig_indices[i+2]]
         I_0=trigger_level(trig_indices[i+1])
         high_level=mean(ref_chan[trig_indices[i]+rise_time:trig_indices[i+1]-fall_time])
         low_level=mean(ref_chan[trig_indices[i+1]+fall_time:trig_indices[i+2]-rise_time])
-        Δim=high_level-low_level/(2*I_0)
+        Δim=(high_level-low_level)/(2*I_0)
 
         #FP_modulation_sensitiviy=FP_shift/FP_modulation_amplitude#3.5e-9#meters/volt #measured calibration factor, not needed if measured_delta_lambda is available.
         # d_lambda_d_t=FP_shift/(1/(2*FP_frequency))#*1e12 #m #cycles/second  #NB could also be determined in terms of the min and max wavelength
-        Δν_h=-3e10 #1/Δim*(-3e9)#(average_ν-ν_0)#<v>-vo/deltap/p  
+        Δν_h=-1#-3e10 #1/Δim*(-3e9)#(average_ν-ν_0)#<v>-vo/deltap/p  
         
         i_plus, i_minus = average_values(local_data,rise_time,trig_indices[i:i+2],I_0) #
         push!(L,L0(i_plus, i_minus, Δim))
@@ -257,9 +267,9 @@ function normalize_channels(ref_chan,sig_chan,trig_indices)
     sig_chan=sig_chan./mean(sig_chan[trig_indices[1]:trig_indices[3]])
     return ref_chan,sig_chan
 end
-function normalize_channels_tdlas(ref_chan,sig_chan,length)
-    ref_chan=ref_chan/mean(ref_chan[1:length])
-    sig_chan=sig_chan/mean(sig_chan[1:length])
+function normalize_channels_tdlas(ref_chan,sig_chan,avg_length)
+    ref_chan=ref_chan/mean(ref_chan[1:Int(avg_length)])
+    sig_chan=sig_chan/mean(sig_chan[1:Int(avg_length)])
 
     return ref_chan,sig_chan
 end
