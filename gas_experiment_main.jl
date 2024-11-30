@@ -1,5 +1,5 @@
 include("gas_experiment_functions.jl") 
-load_det_data=true
+load_det_data=false
 
 global const sampling_rate=1e6
 global const mod_rate=2e3
@@ -102,8 +102,8 @@ if load_det_data == false
         key = index  # Using integers as keys
         range = ld_turning_points[index]:ld_turning_points[index+1]  # Define the range once
         # if isodd(index)
-            temp_setpoint_dict[key] = ld_data["temp_setpoint"][range]
-            temp_sensor_dict[key] = ld_data["temp_sensor"][range]
+        temp_setpoint_dict[key] = ld_data["temp_setpoint"][range]
+         temp_sensor_dict[key] = ld_data["temp_sensor"][range]
         # else
         #     temp_setpoint_dict[key] = reverse!(ld_data["temp_setpoint"][range])
         #     temp_sensor_dict[key] = reverse!(ld_data["temp_sensor"][range])
@@ -139,6 +139,7 @@ end
 
 L_dict = Dict{Int, Array{Float64}}()
 L_prime_dict = Dict{Int, Array{Float64}}()
+trig_dict = Dict{Int, Tuple{Float64, Float64}}()
 
 # Loop over all keys in the dictionaries
 function get_normalization_coefficient(ref_chan,sig_chan)
@@ -182,7 +183,7 @@ for i in keys(ref_chan_dict)
 
     # Recalculate the reference trigger level for trimmed and normalized data
     ref_trig_level_slope, ref_trig_level_intercept = find_ref_trigger_level(ref_chan, downsample)
-
+    trig_dict[i]= (ref_trig_level_slope, ref_trig_level_intercept)
     ref_chan_dict[i]= ref_chan 
     sig_chan_dict[i] = sig_chan
     time_chan_dict[i] = time_chan

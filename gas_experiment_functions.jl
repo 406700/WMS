@@ -210,11 +210,12 @@ function calculate_L_L_prime_for_scan(ref_chan, sig_chan,trig_indices,ref_trig_l
     i_minus_all=[]
     
     for i in 1:2:(length(trig_indices)-2) #the start of every period
-       @infiltrate
+    #    @infiltrate
 
         #calculate a new ΔIm and I0
         local_data=sig_chan[trig_indices[i]:trig_indices[i+2]]
-        I_0=trigger_level(trig_indices[i+1])
+        # I_0=trigger_level(trig_indices[i+1])
+        I_0=mean(ref_chan[trig_indices[i]:trig_indices[i+2]] )
         high_level=mean(ref_chan[trig_indices[i]+rise_time:trig_indices[i+1]-fall_time])
         low_level=mean(ref_chan[trig_indices[i+1]+fall_time:trig_indices[i+2]-rise_time])
         Δim=(high_level-low_level)/(2*I_0)
@@ -245,13 +246,18 @@ function prompt_for_integer()
 end
 
 function trim_channels(ref_chan,sig_chan,trig_indices,first_trigger)
-    foo=2000 #amount of data to plot
-    x_values = 1:length(ref_chan[1:foo])
-    p=plot()
-    plot!(p,x_values, ref_chan[1:foo], label="Signal (ref_chan)", xlabel="Index", ylabel="Amplitude", title="Signal with Trigger Level and Trigger Points")
-    scatter!(p,trig_indices[1:5], ref_chan[trig_indices[1:5]], color=:red, marker=:circle, label="Trigger Points")
-    # gui(p)
-    first_trig_point=first_trigger#prompt_for_integer()
+    # foo=2000 #amount of data to plot
+    # x_values = 1:length(ref_chan[1:foo])
+    # p=plot()
+    # plot!(p,x_values, ref_chan[1:foo], label="Signal (ref_chan)", xlabel="Index", ylabel="Amplitude", title="Signal with Trigger Level and Trigger Points")
+    # scatter!(p,trig_indices[1:5], ref_chan[trig_indices[1:5]], color=:red, marker=:circle, label="Trigger Points")
+    # # gui(p)
+    if ref_chan[1]<ref_chan[3]
+        first_trig_point=1
+    else
+        first_trig_point=2
+    end
+    # first_trig_point=first_trigger#prompt_for_integer()
     trig_indices=trig_indices[first_trig_point:end]
     if iseven(length(trig_indices)) #make sure it is an odd number of trig indices. 3 per period+2 each additional period.
         trig_indices=trig_indices[1:end-1]
@@ -261,13 +267,13 @@ function trim_channels(ref_chan,sig_chan,trig_indices,first_trigger)
 
 end
 
-function normalize_coefficient(ref_chan,sig_chan,trig_indices)
-    # ref_mean=sum(ref_chan[trig_indices[1]:trig_indices[3]])/(trig_indices[3]-trig_indices[1])
-    # sig_mean=sum(sig_chan[trig_indices[1]:trig_indices[3]])/(trig_indices[3]-trig_indices[1])
+# function normalize_coefficient(ref_chan,sig_chan,trig_indices)
+#     # ref_mean=sum(ref_chan[trig_indices[1]:trig_indices[3]])/(trig_indices[3]-trig_indices[1])
+#     # sig_mean=sum(sig_chan[trig_indices[1]:trig_indices[3]])/(trig_indices[3]-trig_indices[1])
 
-    coefficient=mean(sig_chan[trig_indices[1]:trig_indices[3]])/mean(sig_chan[trig_indices[1]:trig_indices[3]])
-    return coefficient
-end
+#     coefficient=mean(sig_chan[trig_indices[1]:trig_indices[3]])/mean(sig_chan[trig_indices[1]:trig_indices[3]])
+#     return coefficient
+# end
 function normalize_channels(ref_chan,sig_chan,trig_indices)
     # ref_mean=sum(ref_chan[trig_indices[1]:trig_indices[3]])/(trig_indices[3]-trig_indices[1])
     # sig_mean=sum(sig_chan[trig_indices[1]:trig_indices[3]])/(trig_indices[3]-trig_indices[1])
