@@ -1,4 +1,4 @@
-using MAT,DelimitedFiles,Dates,Plots,Statistics,EasyFit,RollingFunctions,Mmap,Serialization
+using MAT,DelimitedFiles,Dates,Plots,Statistics,EasyFit,RollingFunctions,Mmap,Serialization,Infiltrator,RollingFunctions
 #should rise and fall times be equivalent?
 function optimized_findfirst(ref_chan,trig_level)
     threshold = trig_level * maximum(ref_chan)  # Precompute the threshold
@@ -276,7 +276,7 @@ function divide_scan_by_slope(ref_chan,sig_chan,ref_trig_level_slope,ref_trig_le
     trigger_level(x) = ref_trig_level_slope *x + ref_trig_level_intercept
     trigger_levels=trigger_level.([1:length(ref_chan);])
     ref_chan=ref_chan./trigger_levels
-    sign_chan=sig_chan./trigger_levels
+    sig_chan=sig_chan./trigger_levels
     return ref_chan,sig_chan
 end
 function find_scan_turning_points(ref_chan,scan_period)

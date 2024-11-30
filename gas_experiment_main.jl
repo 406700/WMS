@@ -11,8 +11,8 @@ global const data_points_per_half_period=round(Int,data_points_per_period/2)
 # ld_data_path="data/20241127/LD_temp_file_with_modulation_10min_gas.txt"
 
 
-det_data_path="data/20241125/10min_mod2.mat" #working
-ld_data_path="data/20241125/LD_temp_file_with_modulation_10min_gas.txt"
+# det_data_path="data/20241125/10min_mod2.mat" #working
+# ld_data_path="data/20241125/LD_temp_file_with_modulation_10min_gas.txt"
 
 # det_data_path="data/20241125/5min_gas_1125.mat"
 # ld_data_path="data/20241125/LD_temp_file_5min_gas.txt"
@@ -35,6 +35,19 @@ ld_data_path="data/20241125/LD_temp_file_with_modulation_10min_gas.txt"
 
 # det_data_path="data/20241128/gas_mod20.mat" #bin exists ?? dividing by time error
 # ld_data_path="data/20241128/gas_mod20.txt"
+
+#################################################################1129 pressure
+
+det_data_path="data/20241129/01bar.mat" #bin exists ?? dividing by time error
+ld_data_path="data/20241129/01bar.txt"
+
+
+#  det_data_path="data/20241129/02bar.mat" #bin exists ?? dividing by time error
+#  ld_data_path="data/20241129/02bar.txt"
+
+
+# det_data_path="data/20241129/03bar.mat" #bin exists ?? dividing by time error
+# ld_data_path="data/20241129/03bar.txt"
 
 ld_data=load_ld_data(ld_data_path)
 if load_det_data == false
@@ -178,7 +191,7 @@ end
 display(p)
 savefig(det_data_path[1:end-3]*"_L.png")
 
-writedlm("det_data_path[1:end-3]"*"_L",L_dict[1])
+writedlm(det_data_path[1:end-3]*"_L",L_dict[1])
 # plot(sig_chan[1:100:end])
 # plot!(sig_chan[Int(1e6):Int(1e6)+500]) 
 # plot(i_p)
