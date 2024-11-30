@@ -185,8 +185,8 @@ function L0_prime(i_p,i_m,Δν_h,Δim)
    1/(Δν_h*2*(1-Δim^2))*(i_m-Δim*i_p)
 end
 
-function average_values(ref_chan,rise_time,trig_indices,I_0) #already normalized
-    sample_length=minimum(diff(trig_indices)) #find the spacing between trigger points, and use the smallest one
+function calculate_iplus_iminus(ref_chan,rise_time,trig_indices,I_0) #already normalized
+    sample_length=minimum(diff(trig_indices)) #find the spacing between trigger points, and use the smallest one to keep in bounds
     i_plus=zeros(sample_length)       
     i_minus=zeros(sample_length)
 
@@ -202,13 +202,16 @@ end
 function calculate_L_L_prime_for_scan(ref_chan, sig_chan,trig_indices,ref_trig_level_slope,ref_trig_level_intercept)
     trigger_level(x) = ref_trig_level_slope *x .+ ref_trig_level_intercept
     rise_time=7
-    fall_time=2 #NB should be equivalent to be safe #the rise time of the intensity signal from the trigger point. total risetime = 2x risetime
+    fall_time=7 #NB should be equivalent to be safe #the rise time of the intensity signal from the trigger point. total risetime = 2x risetime
     
     L= []
     L_prime=[]
     i_plus_all=[]
     i_minus_all=[]
+    
     for i in 1:2:(length(trig_indices)-2) #the start of every period
+       @infiltrate
+
         #calculate a new ΔIm and I0
         local_data=sig_chan[trig_indices[i]:trig_indices[i+2]]
         I_0=trigger_level(trig_indices[i+1])
@@ -220,7 +223,7 @@ function calculate_L_L_prime_for_scan(ref_chan, sig_chan,trig_indices,ref_trig_l
         # d_lambda_d_t=FP_shift/(1/(2*FP_frequency))#*1e12 #m #cycles/second  #NB could also be determined in terms of the min and max wavelength
         Δν_h=-1#-3e10 #1/Δim*(-3e9)#(average_ν-ν_0)#<v>-vo/deltap/p  
         
-        i_plus, i_minus = average_values(local_data,rise_time,trig_indices[i:i+2],I_0) #
+        i_plus, i_minus = calculate_iplus_iminus(local_data,rise_time,trig_indices[i:i+2],I_0) #
         push!(L,L0(i_plus, i_minus, Δim))
         push!(L_prime, L0_prime(i_plus, i_minus, Δν_h, Δim) )
         push!(i_minus_all,i_minus)
@@ -258,11 +261,18 @@ function trim_channels(ref_chan,sig_chan,trig_indices,first_trigger)
 
 end
 
-function normalize_channels(ref_chan,sig_chan,trig_indices)
-    ref_mean=sum(ref_chan[trig_indices[1]:trig_indices[3]])/(trig_indices[3]-trig_indices[1])
-    sig_mean=sum(sig_chan[trig_indices[1]:trig_indices[3]])/(trig_indices[3]-trig_indices[1])
+function normalize_coefficient(ref_chan,sig_chan,trig_indices)
+    # ref_mean=sum(ref_chan[trig_indices[1]:trig_indices[3]])/(trig_indices[3]-trig_indices[1])
+    # sig_mean=sum(sig_chan[trig_indices[1]:trig_indices[3]])/(trig_indices[3]-trig_indices[1])
 
-    ref_chan=ref_chan./ref_mean
+    coefficient=mean(sig_chan[trig_indices[1]:trig_indices[3]])/mean(sig_chan[trig_indices[1]:trig_indices[3]])
+    return coefficient
+end
+function normalize_channels(ref_chan,sig_chan,trig_indices)
+    # ref_mean=sum(ref_chan[trig_indices[1]:trig_indices[3]])/(trig_indices[3]-trig_indices[1])
+    # sig_mean=sum(sig_chan[trig_indices[1]:trig_indices[3]])/(trig_indices[3]-trig_indices[1])
+
+    ref_chan=ref_chan./mean(sig_chan[trig_indices[1]:trig_indices[3]])
     sig_chan=sig_chan./mean(sig_chan[trig_indices[1]:trig_indices[3]])
     return ref_chan,sig_chan
 end

@@ -121,7 +121,7 @@ ref_chan=nothing
 sig_chan=nothing
 GC.gc()
 
-writedlm("det_data_path[1:end-3]"*"_L",sig_chan_dict[1])
+writedlm(det_data_path[1:end-3]*"_L",sig_chan_dict[1])
 
 
 # p=plot()

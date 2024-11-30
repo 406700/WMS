@@ -8,7 +8,7 @@ global const data_points_per_half_period=round(Int,data_points_per_period/2)
 
 
 # det_data_path="data/20241125/5min_gas.mat"
-# ld_data_path="data/20241127/LD_temp_file_with_modulation_10min_gas.txt"
+# ld_data_path="data/20241127/LD_temp_file_with_modulation_10min_gas.tx
 
 
 # det_data_path="data/20241125/10min_mod2.mat" #working
@@ -38,8 +38,8 @@ global const data_points_per_half_period=round(Int,data_points_per_period/2)
 
 #################################################################1129 pressure
 
-det_data_path="data/20241129/01bar.mat" #bin exists ?? dividing by time error
-ld_data_path="data/20241129/01bar.txt"
+det_data_path="data/20241129/02bar.mat" #bin exists ?? dividing by time error
+ld_data_path="data/20241129/02bar.txt"
 
 
 #  det_data_path="data/20241129/02bar.mat" #bin exists ?? dividing by time error
@@ -76,17 +76,17 @@ if load_det_data == false
     for index in 1:number_scans
         key = index  # Using integers as keys
         range = det_turning_points[index]:det_turning_points[index+1]  # Define the range once
-        if isodd(index)
+        # if isodd(index)
             ref_chan_dict[key] = ref_chan[range]
             sig_chan_dict[key] = sig_chan[range]
             time_chan_dict[key] = time_chan[range]
 
-        else
-            ref_chan_dict[key] = reverse!(ref_chan[range])
-            sig_chan_dict[key] = reverse!(sig_chan[range])
-            time_chan_dict[key] = reverse!(time_chan[range])
+        # else
+        #     ref_chan_dict[key] = reverse!(ref_chan[range])
+        #     sig_chan_dict[key] = reverse!(sig_chan[range])
+        #     time_chan_dict[key] = reverse!(time_chan[range])
 
-        end
+        # end
     end
     ref_chan=nothing
     sig_chan=nothing
@@ -101,13 +101,13 @@ if load_det_data == false
     for index in 1:number_scans
         key = index  # Using integers as keys
         range = ld_turning_points[index]:ld_turning_points[index+1]  # Define the range once
-        if isodd(index)
+        # if isodd(index)
             temp_setpoint_dict[key] = ld_data["temp_setpoint"][range]
             temp_sensor_dict[key] = ld_data["temp_sensor"][range]
-        else
-            temp_setpoint_dict[key] = reverse!(ld_data["temp_setpoint"][range])
-            temp_sensor_dict[key] = reverse!(ld_data["temp_sensor"][range])
-        end
+        # else
+        #     temp_setpoint_dict[key] = reverse!(ld_data["temp_setpoint"][range])
+        #     temp_sensor_dict[key] = reverse!(ld_data["temp_sensor"][range])
+        # end
     end
     ld_data=nothing
     GC.gc()
@@ -141,8 +141,25 @@ L_dict = Dict{Int, Array{Float64}}()
 L_prime_dict = Dict{Int, Array{Float64}}()
 
 # Loop over all keys in the dictionaries
+function get_normalization_coefficient(ref_chan,sig_chan)
+    
+
+    downsample = 100
+    # Find reference trigger level
+    ref_trig_level_slope, ref_trig_level_intercept = find_ref_trigger_level(ref_chan, downsample)
+
+    # Find trigger indices
+    trig_indices = find_pulse_trig_points(ref_chan, ref_trig_level_intercept, ref_trig_level_slope, data_points_per_half_period)
+
+    # Trim channels
+    ref_chan, sig_chan, trig_indices = trim_channels(ref_chan, sig_chan, trig_indices, 2)
+    return mean(ref_chan[trig_indices[1]:trig_indices[3]]),mean(sig_chan[trig_indices[1]:trig_indices[3]])
+end
+
+ref_norm,sig_norm=get_normalization_coefficient(ref_chan_dict[1],sig_chan_dict[1])
+
 for i in keys(ref_chan_dict)
-    println(i)
+    println("key=$i")
     # Extract the channels for the current key
     ref_chan = ref_chan_dict[i]
     sig_chan = sig_chan_dict[i]
@@ -159,10 +176,13 @@ for i in keys(ref_chan_dict)
     ref_chan, sig_chan, trig_indices = trim_channels(ref_chan, sig_chan, trig_indices, 2)
 
     # Normalize channels
-    ref_chan, sig_chan = normalize_channels(ref_chan, sig_chan, trig_indices)
+    # ref_chan, sig_chan = normalize_channels(ref_chan, sig_chan, trig_indices)
+    ref_chan=ref_chan/ref_norm
+    sig_chan=sig_chan/sig_norm
 
     # Recalculate the reference trigger level for trimmed and normalized data
     ref_trig_level_slope, ref_trig_level_intercept = find_ref_trigger_level(ref_chan, downsample)
+
     ref_chan_dict[i]= ref_chan 
     sig_chan_dict[i] = sig_chan
     time_chan_dict[i] = time_chan
@@ -175,6 +195,7 @@ for i in keys(ref_chan_dict)
     # Store results in the dictionary
     
 end
+
 p=plot()
 for key in keys(L_prime_dict)
     plot!(p,L_prime_dict[key])
