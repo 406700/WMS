@@ -1,4 +1,4 @@
-using MAT,DelimitedFiles,Dates,Plots,Statistics,EasyFit,RollingFunctions,Mmap,Serialization,Infiltrator,RollingFunctions
+using MAT,DelimitedFiles,Dates,Plots,Statistics,EasyFit,RollingFunctions,Mmap,Serialization,Infiltrator,RollingFunctions,JLD2
 #should rise and fall times be equivalent?
 function optimized_findfirst(ref_chan,trig_level)
     threshold = trig_level * maximum(ref_chan)  # Precompute the threshold

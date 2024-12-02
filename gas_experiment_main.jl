@@ -17,7 +17,7 @@ global const data_points_per_half_period=round(Int,data_points_per_period/2)
 # det_data_path="data/20241125/5min_gas_1125.mat"
 # ld_data_path="data/20241125/LD_temp_file_5min_gas.txt"
 
-
+###########################3#################################################20241127 bad gas setting_
 # det_data_path="data/20241127/mod_10/10min_gas_mod_10.mat" #??
 # ld_data_path="data/20241127/mod_10/10min_gas_mod_10.txt"
 
@@ -25,9 +25,6 @@ global const data_points_per_half_period=round(Int,data_points_per_period/2)
 # ld_data_path="data/20241127/2Mhz_mod_20/10min_gas_mod_20_2MHz.txt"
 
 ##############################################################################################################20241128
-
-# det_data_path="data/20241128/5min_gas_no_mod.mat" #bin exists ?? dividing by time error
-# ld_data_path="data/20241128/5min_gas_no_mod.txt"
 
 
 # det_data_path="data/20241128/gas_mod10.mat" #bin exists ?? dividing by time error
@@ -38,8 +35,8 @@ global const data_points_per_half_period=round(Int,data_points_per_period/2)
 
 #################################################################1129 pressure
 
-det_data_path="data/20241129/02bar.mat" #bin exists ?? dividing by time error
-ld_data_path="data/20241129/02bar.txt"
+# det_data_path="data/20241129/01bar.mat" #bin exists ?? dividing by time error
+# ld_data_path="data/20241129/01bar.txt"
 
 
 #  det_data_path="data/20241129/02bar.mat" #bin exists ?? dividing by time error
@@ -48,9 +45,13 @@ ld_data_path="data/20241129/02bar.txt"
 
 # det_data_path="data/20241129/03bar.mat" #bin exists ?? dividing by time error
 # ld_data_path="data/20241129/03bar.txt"
+#################################################################20241202 long 01 bar
+
+det_data_path="data/20241202/01bar_long.mat" #bin exists ?? dividing by time error
+ld_data_path="data/20241202/01bar_long.txt"
 
 ld_data=load_ld_data(ld_data_path)
-if load_det_data == false
+if load_det_data == true
 
     
     #load and configure to det data
@@ -112,6 +113,7 @@ if load_det_data == false
     ld_data=nothing
     GC.gc()
  # Save all six dictionaries to disk
+ 
     open(det_data_path[1:end-3]*"bin", "w") do io
         serialize(io, (
             ref_chan_dict,
@@ -196,6 +198,12 @@ for i in keys(ref_chan_dict)
     # Store results in the dictionary
     
 end
+for key in keys(L_dict)
+    if iseven(key)
+        L_dict[key]=reverse(L_dict[key])  
+        L_prime_dict[key]=reverse(L_prime_dict[key])  
+    end
+end
 
 p=plot()
 for key in keys(L_prime_dict)
@@ -206,14 +214,17 @@ display(p)
 savefig(det_data_path[1:end-3]*"_L_prime.png")
 
 p=plot()
-for key in keys(L_prime_dict)
+for key in keys(L_dict)
     plot!(p,L_dict[key])
     # plot!(p,L_dict[key])
 end
 display(p)
+
 savefig(det_data_path[1:end-3]*"_L.png")
 
-writedlm(det_data_path[1:end-3]*"_L",L_dict[1])
+save(det_data_path[1:end-3]*"_L.jld2",Dict(string(key) => value for (key, value) in L_dict))
+save(det_data_path[1:end-3]*"_L_prime.jld2",Dict(string(key) => value for (key, value) in L_prime_dict))
+
 # plot(sig_chan[1:100:end])
 # plot!(sig_chan[Int(1e6):Int(1e6)+500]) 
 # plot(i_p)

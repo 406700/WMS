@@ -1,4 +1,4 @@
-using DelimitedFiles,FiniteDiff,Interpolations,Plots,RollingFunctions
+using DelimitedFiles,FiniteDiff,Interpolations,Plots,RollingFunctions,JLD2
 
 hitran_path="data/spectraplot/"
 #load a line
@@ -23,7 +23,7 @@ end
 # # Compute the derivative of y with respect to x
 # line_derivative=FiniteDiff.finite_difference_derivative(f(x),x)
 
-exp_line=readdlm("det_data_path[1:end-3]"*"_L")
+exp_line=load(det_data_path[1:end-3]*"_L.jld2")
 # exp_line=Vector(exp_line[:,1])
 # if direct_measurement==true
 #     exp_line=rollmean(exp_line,100)[1:500:end] #500=same as 
@@ -70,28 +70,34 @@ exp_line=readdlm("det_data_path[1:end-3]"*"_L")
 # using Plots
 
 # Direct measurement
+key="1"
 direct_path = "data/20241128/gas_no_mod.mat"  # Direct measurement file
-direct_line = readdlm(direct_path[1:end-3] * "_L")
-direct_line = Vector(direct_line[:, 1])
+direct_line = load(direct_path[1:end-3] * "_L.jld2")[key] 
 direct_line = rollmean(direct_line, 100)[1:500:end]  # Smooth and downsample
 
 # Modulation data
 mod_paths = Dict(
     30 => "data/20241125/10min_mod2.mat",
+    20=> "data/20241128/gas_mod20.mat",
     10 => "data/20241128/gas_mod10.mat"
 )
-mod10_line = readdlm(mod_paths[10][1:end-3] * "_L")
-mod10_line = Vector(mod10_line[:, 1])
+# p=plot()
+x_direct=[] 
 
-# Create x-axis for direct_line to match mod10_line length
-direct_x = range(1, stop=length(mod10_line), length=length(direct_line))
-
-# Initialize the plot with mod10_line
-p=plot()
-plot!(p,1:length(mod10_line), mod10_line, label="Modulation 10")
+for mod in [20,10] 
+    mod_line = load(mod_paths[mod][1:end-3] * "_L.jld2")
+    mod_line = mod_line[key] 
+    println(size(mod_line))
+    # Create x-axis for direct_line to match mod10_line length
+     global x_direct=collect(range(start=1,stop=length(mod_line);length=length(direct_line))) #inside the loop to avoid loading, but uses the last loop iteration. not precise due to varying legnth of mod lines.
+    plot!(p,1:length(mod_line), mod_line, label="Modulation_"*string(mod))
+end
 
 # Plot direct_line
-plot!(p,direct_x, direct_line, label="Direct Measurement")
+#since the number of samples are greater, the axis needs to be scaled. should fix everything to use the time channel.
+
+
+plot!(p,x_direct, direct_line, label="Direct Measurement") #NB
 
 # Pressure data
 pres_paths = Dict(
@@ -100,18 +106,11 @@ pres_paths = Dict(
 )
 
 # Loop over pres_paths to read, process, and plot each dataset
+key="1"
 for (pressure, path) in pres_paths
-    pres_line = readdlm(path[1:end-3] * "_L")
-    pres_line = Vector(pres_line[:, 1])
-    # pres_line = rollmean(pres_line, 100)[1:500:end]  # Smooth and downsample
-    # Create x-axis for pres_line to match mod10_line length
-    pres_x = range(1, stop=length(mod10_line), length=length(pres_line))
-    # Plot pres_line
-    plot!(p,pres_x, pres_line, label="Pressure $(pressure) bar")
+    pres_line = load(path[1:end-3] * "_L.jld2")
+    pres_line = pres_line[key] 
+    plot!(p,1:length(pres_line), pres_line, label="Pressure $(pressure) bar")
 end
-
-# Display the plot
 display(p)
 
-# Print the size of mod10_line
-println("Size of mod10_line: ", size(mod10_line))

@@ -121,7 +121,7 @@ ref_chan=nothing
 sig_chan=nothing
 GC.gc()
 
-writedlm(det_data_path[1:end-3]*"_L",sig_chan_dict[1])
+save(det_data_path[1:end-3]*"_L.jld2",Dict(string(key) => value for (key, value) in sig_chan_dict))
 
 
 # p=plot()
@@ -147,4 +147,3 @@ writedlm(det_data_path[1:end-3]*"_L",sig_chan_dict[1])
 # plot(rollmean(ref_chan,10000)[1:100:end])
 # plot(rollmean(sig_chan,10000)[1:100:end])
 
-sig_chan_dict[3]
