@@ -50,8 +50,8 @@ global const data_points_per_half_period=round(Int,data_points_per_period/2)
 det_data_path="data/20241202/01bar_long.mat" 
 ld_data_path="data/20241202/01bar_long.txt"
 
-det_data_path="data/20241202/03bar_scan.mat" #long gas flow time >10 min. 20mv 19 pm 2 deg.
-ld_data_path="data/20241202/03bar_scan.txt"
+# det_data_path="data/20241202/03bar_scan.mat" #long gas flow time >10 min. 20mv 19 pm 2 deg.
+# ld_data_path="data/20241202/03bar_scan.txt"
 
 # det_data_path="data/20241202/03bar_stab.mat" #long gas flow time >10 min. 20mv 19 pm 2 deg.
 
