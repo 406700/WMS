@@ -1,5 +1,5 @@
 include("gas_experiment_functions.jl") 
-load_det_data=false
+load_det_data=true
 
 global const sampling_rate=1e6
 global const mod_rate=2e3
@@ -27,31 +27,37 @@ global const data_points_per_half_period=round(Int,data_points_per_period/2)
 ##############################################################################################################20241128
 
 
-# det_data_path="data/20241128/gas_mod10.mat" #bin exists ?? dividing by time error
+# det_data_path="data/20241128/gas_mod10.mat" 
 # ld_data_path="data/20241128/gas_mod10.txt"
 
-# det_data_path="data/20241128/gas_mod20.mat" #bin exists ?? dividing by time error
+# det_data_path="data/20241128/gas_mod20.mat"
 # ld_data_path="data/20241128/gas_mod20.txt"
 
 #################################################################1129 pressure
 
-# det_data_path="data/20241129/01bar.mat" #bin exists ?? dividing by time error
+# det_data_path="data/20241129/01bar.mat"
 # ld_data_path="data/20241129/01bar.txt"
 
 
-#  det_data_path="data/20241129/02bar.mat" #bin exists ?? dividing by time error
+#  det_data_path="data/20241129/02bar.mat" 
 #  ld_data_path="data/20241129/02bar.txt"
 
 
-# det_data_path="data/20241129/03bar.mat" #bin exists ?? dividing by time error
+# det_data_path="data/20241129/03bar.mat" 
 # ld_data_path="data/20241129/03bar.txt"
 #################################################################20241202 long 01 bar
 
-det_data_path="data/20241202/01bar_long.mat" #bin exists ?? dividing by time error
+det_data_path="data/20241202/01bar_long.mat" 
 ld_data_path="data/20241202/01bar_long.txt"
 
+det_data_path="data/20241202/03bar_scan.mat" #long gas flow time >10 min. 20mv 19 pm 2 deg.
+ld_data_path="data/20241202/03bar_scan.txt"
+
+# det_data_path="data/20241202/03bar_stab.mat" #long gas flow time >10 min. 20mv 19 pm 2 deg.
+
 ld_data=load_ld_data(ld_data_path)
-if load_det_data == true
+
+if load_det_data == false
 
     
     #load and configure to det data
@@ -77,22 +83,14 @@ if load_det_data == true
     for index in 1:number_scans
         key = index  # Using integers as keys
         range = det_turning_points[index]:det_turning_points[index+1]  # Define the range once
-        # if isodd(index)
-            ref_chan_dict[key] = ref_chan[range]
-            sig_chan_dict[key] = sig_chan[range]
-            time_chan_dict[key] = time_chan[range]
+        ref_chan_dict[key] = ref_chan[range]
+        sig_chan_dict[key] = sig_chan[range]
+        time_chan_dict[key] = time_chan[range]
 
-        # else
-        #     ref_chan_dict[key] = reverse!(ref_chan[range])
-        #     sig_chan_dict[key] = reverse!(sig_chan[range])
-        #     time_chan_dict[key] = reverse!(time_chan[range])
-
-        # end
     end
     ref_chan=nothing
     sig_chan=nothing
     GC.gc()
-
 
     temp_setpoint_dict = Dict{Int, Vector{Float64}}()
     temp_sensor_dict = Dict{Int, Vector{Float64}}()
@@ -102,13 +100,8 @@ if load_det_data == true
     for index in 1:number_scans
         key = index  # Using integers as keys
         range = ld_turning_points[index]:ld_turning_points[index+1]  # Define the range once
-        # if isodd(index)
         temp_setpoint_dict[key] = ld_data["temp_setpoint"][range]
-         temp_sensor_dict[key] = ld_data["temp_sensor"][range]
-        # else
-        #     temp_setpoint_dict[key] = reverse!(ld_data["temp_setpoint"][range])
-        #     temp_sensor_dict[key] = reverse!(ld_data["temp_sensor"][range])
-        # end
+        temp_sensor_dict[key] = ld_data["temp_sensor"][range]
     end
     ld_data=nothing
     GC.gc()
@@ -135,7 +128,7 @@ else
         time_ld_dict
     ) = open(det_data_path[1:end-3]*"bin", "r") do io
         deserialize(io)
-end
+    end
 end
 
 
@@ -164,36 +157,34 @@ ref_norm,sig_norm=get_normalization_coefficient(ref_chan_dict[1],sig_chan_dict[1
 for i in keys(ref_chan_dict)
     println("key=$i")
     # Extract the channels for the current key
-    ref_chan = ref_chan_dict[i]
-    sig_chan = sig_chan_dict[i]
-    time_chan = time_chan_dict[i]
+    
 
     downsample = 100
     # Find reference trigger level
-    ref_trig_level_slope, ref_trig_level_intercept = find_ref_trigger_level(ref_chan, downsample)
+    ref_trig_level_slope, ref_trig_level_intercept = find_ref_trigger_level(ref_chan_dict[i], downsample)
 
     # Find trigger indices
-    trig_indices = find_pulse_trig_points(ref_chan, ref_trig_level_intercept, ref_trig_level_slope, data_points_per_half_period)
+    trig_indices = find_pulse_trig_points(ref_chan_dict[i] , ref_trig_level_intercept, ref_trig_level_slope, data_points_per_half_period)
 
     # Trim channels
-    ref_chan, sig_chan, trig_indices = trim_channels(ref_chan, sig_chan, trig_indices, 2)
-
+    ref_chan_trim, sig_chan_trim, trig_indices_trim = trim_channels(ref_chan_dict[i] , sig_chan_dict[i], trig_indices, 2)
+    # @infiltrate 
     # Normalize channels
     # ref_chan, sig_chan = normalize_channels(ref_chan, sig_chan, trig_indices)
-    ref_chan=ref_chan/ref_norm
-    sig_chan=sig_chan/sig_norm
+    ref_chan_trim=ref_chan_trim/ref_norm
+    sig_chan_trim=sig_chan_trim/sig_norm
 
     # Recalculate the reference trigger level for trimmed and normalized data
-    ref_trig_level_slope, ref_trig_level_intercept = find_ref_trigger_level(ref_chan, downsample)
+    ref_trig_level_slope, ref_trig_level_intercept = find_ref_trigger_level(ref_chan_trim, downsample)
     trig_dict[i]= (ref_trig_level_slope, ref_trig_level_intercept)
-    ref_chan_dict[i]= ref_chan 
-    sig_chan_dict[i] = sig_chan
-    time_chan_dict[i] = time_chan
+    ref_chan_dict[i]= ref_chan_trim 
+    sig_chan_dict[i] = sig_chan_trim
+    # time_chan_dict[i] = time_chan_trim
     # Run garbage collection
     GC.gc()
 
     # Calculate L and L_prime for the current scan
-    L_dict[i],L_prime_dict[i],_,_ = calculate_L_L_prime_for_scan(ref_chan, sig_chan, trig_indices, ref_trig_level_slope, ref_trig_level_intercept)
+    L_dict[i],L_prime_dict[i],_,_ = calculate_L_L_prime_for_scan(ref_chan_trim, sig_chan_trim, trig_indices_trim, ref_trig_level_slope, ref_trig_level_intercept)
 
     # Store results in the dictionary
     
@@ -221,13 +212,7 @@ end
 display(p)
 
 savefig(det_data_path[1:end-3]*"_L.png")
-
 save(det_data_path[1:end-3]*"_L.jld2",Dict(string(key) => value for (key, value) in L_dict))
 save(det_data_path[1:end-3]*"_L_prime.jld2",Dict(string(key) => value for (key, value) in L_prime_dict))
 
-# plot(sig_chan[1:100:end])
-# plot!(sig_chan[Int(1e6):Int(1e6)+500]) 
-# plot(i_p)
-# plot(sig_chan[1:1000:end])
-# plot(i_p)
-# plot(i_m)
+

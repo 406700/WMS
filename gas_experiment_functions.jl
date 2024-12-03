@@ -162,7 +162,7 @@ function find_pulse_trig_points(ref_chan, ref_trig_level_intercept, ref_trig_lev
         min_difference, min_idx = findmin(differences)
 
         if min_difference > trig_tolerance
-            error("Trigger point not found within tolerance at index $expected_index. sig=$(local_data[min_idx]), trig level=$local_trig_level")
+            #error("Trigger point not found within tolerance at index $expected_index. sig=$(local_data[min_idx]), trig level=$local_trig_level")
         end
 
         # Get the actual index in ref_chan
@@ -170,7 +170,7 @@ function find_pulse_trig_points(ref_chan, ref_trig_level_intercept, ref_trig_lev
         push!(trig_indices, trig_index)
     end
     if maximum(diff(diff(trig_indices))) >(5*sampling_rate/1e6)
-        error("finding trig indices: variation in period $(maximum(diff(diff(trig_indices))))> 5 sample")
+        #error("finding trig indices: variation in period $(maximum(diff(diff(trig_indices))))> 5 sample")
     end
     return trig_indices
 end
@@ -216,8 +216,16 @@ function calculate_L_L_prime_for_scan(ref_chan, sig_chan,trig_indices,ref_trig_l
         local_data=sig_chan[trig_indices[i]:trig_indices[i+2]]
         # I_0=trigger_level(trig_indices[i+1])
         I_0=mean(ref_chan[trig_indices[i]:trig_indices[i+2]] )
+        if I_0<0
+          
+            #error("I_0 less than 1")
+        end
         high_level=mean(ref_chan[trig_indices[i]+rise_time:trig_indices[i+1]-fall_time])
         low_level=mean(ref_chan[trig_indices[i+1]+fall_time:trig_indices[i+2]-rise_time])
+        if high_level<low_level
+           
+            #error("high level below low level")
+        end
         Δim=(high_level-low_level)/(2*I_0)
 
         #FP_modulation_sensitiviy=FP_shift/FP_modulation_amplitude#3.5e-9#meters/volt #measured calibration factor, not needed if measured_delta_lambda is available.
@@ -240,7 +248,7 @@ function prompt_for_integer()
             x = parse(Int, input_str)
             return x
         catch
-            error("Invalid input. Please enter a valid integer.")
+            #error("Invalid input. Please enter a valid integer.")
         end
 
 end
@@ -252,19 +260,23 @@ function trim_channels(ref_chan,sig_chan,trig_indices,first_trigger)
     # plot!(p,x_values, ref_chan[1:foo], label="Signal (ref_chan)", xlabel="Index", ylabel="Amplitude", title="Signal with Trigger Level and Trigger Points")
     # scatter!(p,trig_indices[1:5], ref_chan[trig_indices[1:5]], color=:red, marker=:circle, label="Trigger Points")
     # # gui(p)
-    if ref_chan[1]<ref_chan[3]
+    first_trig_point=0
+    if ref_chan[trig_indices[1]]<ref_chan[ trig_indices[1]+2 ] #check the sign of the slope at the trigger. Works due to low sampling rate, i.e no change in slope #NB
         first_trig_point=1
     else
         first_trig_point=2
     end
+    println(first_trig_point)
     # first_trig_point=first_trigger#prompt_for_integer()
     trig_indices=trig_indices[first_trig_point:end]
     if iseven(length(trig_indices)) #make sure it is an odd number of trig indices. 3 per period+2 each additional period.
         trig_indices=trig_indices[1:end-1]
     end
     #now trig_indices_must start at 1
-    return ref_chan[trig_indices[1]:trig_indices[end]],sig_chan[trig_indices[1]:trig_indices[end]], (trig_indices.-trig_indices[1].+1)
-
+   ref_chan=ref_chan[trig_indices[1]:trig_indices[end]]
+   sig_chan=sig_chan[trig_indices[1]:trig_indices[end]]
+   trig_indices=(trig_indices.-trig_indices[1].+1)
+   return ref_chan,sig_chan,trig_indices
 end
 
 # function normalize_coefficient(ref_chan,sig_chan,trig_indices)

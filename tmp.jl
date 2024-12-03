@@ -1,4 +1,4 @@
-using Interpolations,FiniteDiff,Plots
+using Interpolations,FiniteDiff,Plots 
 # Define data points
 x = collect(range(-10,stop=10,length=1000))
 y = x.^3
