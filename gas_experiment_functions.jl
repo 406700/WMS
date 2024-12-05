@@ -51,10 +51,11 @@ function divide_scans_by_time(time_chan,temp_data,temp_time)
     max_points=findall(x->x==max,temp_data)
     min_points=findall(x->x==min,temp_data)
     turning_points=vcat(min_points,max_points)
-    turning_points=sort(turning_points)
+    turning_points=sort(turning_points) # orders the points by time.
+
     time_points=temp_time[turning_points]
     time_chan_indices=[findmin(abs.(time_chan.-x))[2] for x in time_points]
-    return time_chan_indices,turning_points
+    return time_chan_indices,turning_points #
 end
 function find_scan_turning_points(ref_chan,scan_period)
     data_points_per_half_scan_period=Int(scan_period*1/2*sampling_rate) 
@@ -277,6 +278,33 @@ function trim_channels(ref_chan,sig_chan,trig_indices,first_trigger)
    sig_chan=sig_chan[trig_indices[1]:trig_indices[end]]
    trig_indices=(trig_indices.-trig_indices[1].+1)
    return ref_chan,sig_chan,trig_indices
+end
+function trim_channels(ref_chan,sig_chan,time_chan,trig_indices,first_trigger)
+    # foo=2000 #amount of data to plot
+    # x_values = 1:length(ref_chan[1:foo])
+    # p=plot()
+    # plot!(p,x_values, ref_chan[1:foo], label="Signal (ref_chan)", xlabel="Index", ylabel="Amplitude", title="Signal with Trigger Level and Trigger Points")
+    # scatter!(p,trig_indices[1:5], ref_chan[trig_indices[1:5]], color=:red, marker=:circle, label="Trigger Points")
+    # # gui(p)
+    first_trig_point=0
+    if ref_chan[trig_indices[1]]<ref_chan[ trig_indices[1]+2 ] #check the sign of the slope at the trigger. Works due to low sampling rate, i.e no change in slope #NB
+        first_trig_point=1
+    else
+        first_trig_point=2
+    end
+    println(first_trig_point)
+    # first_trig_point=first_trigger#prompt_for_integer()
+    trig_indices=trig_indices[first_trig_point:end]
+    if iseven(length(trig_indices)) #make sure it is an odd number of trig indices. 3 per period+2 each additional period.
+        trig_indices=trig_indices[1:end-1]
+    end
+    #now trig_indices_must start at 1
+   ref_chan=ref_chan[trig_indices[1]:trig_indices[end]]
+   sig_chan=sig_chan[trig_indices[1]:trig_indices[end]]
+   time_chan=time_chan[trig_indices[1]:trig_indices[end]]
+
+   trig_indices=(trig_indices.-trig_indices[1].+1)
+   return ref_chan,sig_chan,time_chan,trig_indices
 end
 
 # function normalize_coefficient(ref_chan,sig_chan,trig_indices)

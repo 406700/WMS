@@ -3,6 +3,6 @@
 
 # But not these files...
 !*.jl
-
+!*.toml
 # Additionally, do not ignore the .gitignore file itself
 !.gitignore

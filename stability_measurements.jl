@@ -6,7 +6,6 @@ global const mod_rate=2e3
 global const data_points_per_period=sampling_rate/mod_rate
 global const data_points_per_half_period=round(Int,data_points_per_period/2)
 
-
 det_data_path="data/20241202/03bar_stab.mat" #gas briefly disconnected and hose removed, before restarting the experiment with only a few minutes flow time. Assumed gas may still be present.
 
 if load_det_data == false
