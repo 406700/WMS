@@ -8,14 +8,7 @@ global const data_points_per_half_period=round(Int,data_points_per_period/2)
 
 
 # det_data_path="data/20241125/5min_gas.mat"
-# ld_data_path="data/20241127/LD_temp_file_with_modulation_10min_gas.tx
-
-
-# det_data_path="data/20241125/10min_mod2.mat" #working
-# ld_data_path="data/20241125/LD_temp_file_with_modulation_10min_gas.txt"
-
-# det_data_path="data/20241125/5min_gas_1125.mat"
-# ld_data_path="data/20241125/LD_temp_file_5min_gas.txt"
+# ld_data_path="data/20241127/LD_temp_file_with_modulation_10min_gas.txF
 
 ###########################3#################################################20241127 bad gas setting_
 # det_data_path="data/20241127/mod_10/10min_gas_mod_10.mat" #??
@@ -47,11 +40,11 @@ global const data_points_per_half_period=round(Int,data_points_per_period/2)
 # ld_data_path="data/20241129/03bar.txt"
 #################################################################20241202 long 01 bar
 
-det_data_path="data/20241202/01_bar_long.mat" 
-ld_data_path="data/20241202/01bar_long.txt"
+# det_data_path="data/20241202/01_bar_long.mat" 
+# ld_data_path="data/20241202/01bar_long.txt"
 
-# det_data_path="data/20241202/03bar_scan.mat" #long gas flow time >10 min. 20mv 19 pm 2 deg.
-# ld_data_path="data/20241202/03bar_scan.txt"
+det_data_path="data/20241202/03bar_scan.mat" #long gas flow time >10 min. 20mv 19 pm 2 deg.
+ld_data_path="data/20241202/03bar_scan.txt"
 
 # det_data_path="data/20241202/03bar_stab.mat" #long gas flow time >10 min. 20mv 19 pm 2 deg.
 
@@ -159,7 +152,7 @@ end
 
 ref_norm,sig_norm=get_normalization_coefficient(ref_chan_dict[1],sig_chan_dict[1])
 
-for i in keys(ref_chan_dict)
+for i in 1#keys(ref_chan_dict)
     println("key=$i")
     # Extract the channels for the current key
     

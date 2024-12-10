@@ -173,12 +173,14 @@ function compare_hitran_derivative_with_adjusted_scale(hitran_path, det_data_pat
     data, header = readdlm(hitran_path, ',', header = true)
     x = data[:, 1]
     y = data[:, 2]
+    # matwrite("hitran.mat",Dict("wavenumber"=>x,"transmittance"=>y))
     p=plot(xlabel="wavenumber",ylabel="uncalibrated derivative (a.u.)")
     p2 = plot(xlabel="wavenumber",ylabel="Transmittance")
     χ_shift = 1
 
     plot!(p2, x, (1 .-((1 .-y)* χ_shift)), label = "HITRAN χ $χ_shift")
     x,y =numerical_derivative(x,y)
+    # matwrite("hitran_derivative.mat",Dict("wavenumber"=>x,"derivative_transmittance"=>y))
 
     plot!(p, x, (1 .-((1 .-y)* χ_shift)), label = "HITRAN χ $χ_shift")
     max_deriv=maximum(y)

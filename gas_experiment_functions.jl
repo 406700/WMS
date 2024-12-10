@@ -209,7 +209,7 @@ function calculate_L_L_prime_for_scan(ref_chan, sig_chan,trig_indices,ref_trig_l
     L_prime=[]
     i_plus_all=[]
     i_minus_all=[]
-    
+    I0_all=[]
     for i in 1:2:(length(trig_indices)-2) #the start of every period
     #    @infiltrate
 
@@ -238,7 +238,14 @@ function calculate_L_L_prime_for_scan(ref_chan, sig_chan,trig_indices,ref_trig_l
         push!(L_prime, L0_prime(i_plus, i_minus, Δν_h, Δim) )
         push!(i_minus_all,i_minus)
         push!(i_plus_all,i_plus)
+        push!(I0_all,I_0)
+
     end
+    I_minus=i_minus_all.*I0_all
+    I_plus=(i_plus_all.*I0_all)
+    matwrite("i_pm",Dict("i_minus"=>i_minus_all,"i_plus"=>i_plus_all))
+    matwrite("I_pm",Dict("I_minus"=>I_minus,"I_plus"=>I_plus))
+
     return L,L_prime,i_plus_all,i_minus_all
 end
 
