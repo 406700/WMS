@@ -151,7 +151,7 @@ end
 # amplitude=0.57#  # Amplitude of the resonance
 # center_wavelength=range(1546.5,step=0.01,stop=1547.5)
 # matfile=matopen
-Δλ=0.05/2  # Half of the total frequency chirp
+Δλ=0.025/2  # Half of the total frequency chirp
 t=range(1,step=1,stop=200)  # Time range for simulation
 λ_t= Δλ*m.(t).*h.(t)  # Modulated wavelength over time
 λ0=1547  # Central wavelength

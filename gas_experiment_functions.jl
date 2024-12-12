@@ -1,4 +1,4 @@
-using MAT,DelimitedFiles,Dates,Plots,Statistics,EasyFit,RollingFunctions,Mmap,Serialization,Infiltrator,RollingFunctions,JLD2
+using MAT,DelimitedFiles,Dates,Plots,Statistics,EasyFit,RollingFunctions,Mmap,Serialization,Infiltrator,RollingFunctions,JLD2,Interpolations
 #should rise and fall times be equivalent?
 function optimized_findfirst(ref_chan,trig_level)
     threshold = trig_level * maximum(ref_chan)  # Precompute the threshold
@@ -187,20 +187,20 @@ function L0_prime(i_p,i_m,Δν_h,Δim)
 end
 
 function calculate_iplus_iminus(ref_chan,rise_time,trig_indices,I_0) #already normalized
+    # @infiltrate
     sample_length=minimum(diff(trig_indices)) #find the spacing between trigger points, and use the smallest one to keep in bounds
-    i_plus=zeros(sample_length)       
-    i_minus=zeros(sample_length)
-
-    for i in rise_time:sample_length
-        i_plus[i]=ref_chan[i]+ref_chan[i+sample_length]
-        i_minus[i]=ref_chan[i]-ref_chan[i+sample_length]
-    end
+    
+    i_plus=ref_chan[rise_time:sample_length-rise_time].+ref_chan[rise_time+sample_length:Int(2*sample_length-rise_time)]
+    i_minus=ref_chan[rise_time:sample_length-rise_time].-ref_chan[rise_time+sample_length:Int(2*sample_length-rise_time)]
     i_plus=mean(i_plus)
     i_minus=mean(i_minus)
-    return i_plus/I_0,i_minus/I_0 #NB not exactly I_0 but accounts for the difference in the intensity over time
+   
+    i_plus=mean(i_plus)/I_0
+    i_minus=mean(i_minus)/I_0
+    return i_plus,i_minus #NB not exactly I_0 but accounts for the difference in the intensity over time
 end
 
-function calculate_L_L_prime_for_scan(ref_chan, sig_chan,trig_indices,ref_trig_level_slope,ref_trig_level_intercept)
+function calculate_L_L_prime_for_scan(ref_chan, sig_chan,trig_indices,ref_trig_level_slope,ref_trig_level_intercept,norm)
     trigger_level(x) = ref_trig_level_slope *x .+ ref_trig_level_intercept
     rise_time=7
     fall_time=7 #NB should be equivalent to be safe #the rise time of the intensity signal from the trigger point. total risetime = 2x risetime
@@ -211,21 +211,20 @@ function calculate_L_L_prime_for_scan(ref_chan, sig_chan,trig_indices,ref_trig_l
     i_minus_all=[]
     I0_all=[]
     for i in 1:2:(length(trig_indices)-2) #the start of every period
-    #    @infiltrate
-
+        # @infiltrate
         #calculate a new ΔIm and I0
         local_data=sig_chan[trig_indices[i]:trig_indices[i+2]]
         # I_0=trigger_level(trig_indices[i+1])
         I_0=mean(ref_chan[trig_indices[i]:trig_indices[i+2]] )
         if I_0<0
           
-            #error("I_0 less than 1")
+            error("I_0 less than 1")
         end
         high_level=mean(ref_chan[trig_indices[i]+rise_time:trig_indices[i+1]-fall_time])
         low_level=mean(ref_chan[trig_indices[i+1]+fall_time:trig_indices[i+2]-rise_time])
         if high_level<low_level
            
-            #error("high level below low level")
+            error("high level below low level")
         end
         Δim=(high_level-low_level)/(2*I_0)
 
@@ -233,7 +232,7 @@ function calculate_L_L_prime_for_scan(ref_chan, sig_chan,trig_indices,ref_trig_l
         # d_lambda_d_t=FP_shift/(1/(2*FP_frequency))#*1e12 #m #cycles/second  #NB could also be determined in terms of the min and max wavelength
         Δν_h=-1#-3e10 #1/Δim*(-3e9)#(average_ν-ν_0)#<v>-vo/deltap/p  
         
-        i_plus, i_minus = calculate_iplus_iminus(local_data,rise_time,trig_indices[i:i+2],I_0) #
+        i_plus, i_minus = calculate_iplus_iminus(local_data,rise_time,trig_indices[i:i+2],I_0*norm) #
         push!(L,L0(i_plus, i_minus, Δim))
         push!(L_prime, L0_prime(i_plus, i_minus, Δν_h, Δim) )
         push!(i_minus_all,i_minus)
@@ -241,10 +240,10 @@ function calculate_L_L_prime_for_scan(ref_chan, sig_chan,trig_indices,ref_trig_l
         push!(I0_all,I_0)
 
     end
-    I_minus=i_minus_all.*I0_all
-    I_plus=(i_plus_all.*I0_all)
-    matwrite("i_pm",Dict("i_minus"=>i_minus_all,"i_plus"=>i_plus_all))
-    matwrite("I_pm",Dict("I_minus"=>I_minus,"I_plus"=>I_plus))
+    # I_minus=i_minus_all.*I0_all
+    # I_plus=(i_plus_all.*I0_all)
+    # matwrite("i_pm",Dict("i_minus"=>i_minus_all,"i_plus"=>i_plus_all))
+    # matwrite("I_pm",Dict("I_minus"=>I_minus,"I_plus"=>I_plus))
 
     return L,L_prime,i_plus_all,i_minus_all
 end
@@ -321,6 +320,89 @@ end
 #     coefficient=mean(sig_chan[trig_indices[1]:trig_indices[3]])/mean(sig_chan[trig_indices[1]:trig_indices[3]])
 #     return coefficient
 # end
+function process_det_data(det_data_path::String, ld_data, load_det_data::Bool)
+    if !load_det_data
+        # Load and configure to det data
+        ref_chan, sig_chan, time_chan = read_det_data(det_data_path, 0.995)  # trigger level
+        GC.gc()
+
+        # Coordinate the scans
+        det_turning_points, ld_turning_points = divide_scans_by_time(time_chan, ld_data["temp_setpoint"], ld_data["time"])
+
+        # Initialize dictionaries
+        ref_chan_dict = Dict{Int, Vector{Float64}}()
+        sig_chan_dict = Dict{Int, Vector{Float64}}()
+        time_chan_dict = Dict{Int, Vector{Float64}}()
+
+        number_scans = length(det_turning_points) - 1
+        GC.gc()
+
+        # Populate ref_chan_dict, sig_chan_dict, and time_chan_dict
+        for index in 1:number_scans
+            key = index  # Using integers as keys
+            range = det_turning_points[index]:det_turning_points[index + 1]
+            ref_chan_dict[key] = ref_chan[range]
+            sig_chan_dict[key] = sig_chan[range]
+            time_chan_dict[key] = time_chan[range]
+        end
+        ref_chan = nothing
+        sig_chan = nothing
+        GC.gc()
+
+        # Initialize more dictionaries
+        temp_setpoint_dict = Dict{Int, Vector{Float64}}()
+        temp_sensor_dict = Dict{Int, Vector{Float64}}()
+        time_ld_dict = Dict{Int, Vector{Float64}}()
+
+        # Populate temp_setpoint_dict, temp_sensor_dict, and time_ld_dict
+        for index in 1:number_scans
+            key = index  # Using integers as keys
+            range = ld_turning_points[index]:ld_turning_points[index + 1]
+            temp_setpoint_dict[key] = ld_data["temp_setpoint"][range]
+            temp_sensor_dict[key] = ld_data["temp_sensor"][range]
+            time_ld_dict[key] = ld_data["time"][range]
+        end
+        ld_data = nothing
+        GC.gc()
+
+        # Save all six dictionaries to disk
+        save_path = det_data_path[1:end - 3] * "bin"
+        open(save_path, "w") do io
+            serialize(io, (
+                ref_chan_dict,
+                sig_chan_dict,
+                time_chan_dict,
+                temp_setpoint_dict,
+                temp_sensor_dict,
+                time_ld_dict
+            ))
+        end
+
+    else
+        # Load all six dictionaries from disk
+        save_path = det_data_path[1:end - 3] * "bin"
+        (
+            ref_chan_dict,
+            sig_chan_dict,
+            time_chan_dict,
+            temp_setpoint_dict,
+            temp_sensor_dict,
+            time_ld_dict
+        ) = open(save_path, "r") do io
+            deserialize(io)
+        end
+    end
+
+    return (
+        ref_chan_dict,
+        sig_chan_dict,
+        time_chan_dict,
+        temp_setpoint_dict,
+        temp_sensor_dict,
+        time_ld_dict
+    )
+end
+
 function normalize_channels(ref_chan,sig_chan,trig_indices)
     # ref_mean=sum(ref_chan[trig_indices[1]:trig_indices[3]])/(trig_indices[3]-trig_indices[1])
     # sig_mean=sum(sig_chan[trig_indices[1]:trig_indices[3]])/(trig_indices[3]-trig_indices[1])
@@ -379,4 +461,18 @@ function find_scan_turning_points(ref_chan,scan_period)
     end
    
     return turning_points
+end
+function interpolate_hitran()
+    hitran_dict=matread("hitran.mat")
+    hitran_wavelength=reverse(+1 ./ hitran_dict["wavenumber"]*1e7)
+    itp=LinearInterpolation(hitran_wavelength,reverse(hitran_dict["transmittance"]))
+    hitran_dict=nothing
+    GC.gc()
+    start=minimum(hitran_wavelength)
+    stop=maximum(hitran_wavelength)
+
+    hitran_dict=matread("hitran_derivative.mat")
+    itp2=LinearInterpolation(hitran_wavelength,reverse(hitran_dict["derivative_transmittance"]))
+
+    return itp,itp2,start,stop
 end

@@ -229,13 +229,18 @@ det_data_paths=["data/20241202/01_bar_long.mat"]# ,"data/20241128/gas_mod10.mat"
 # det_data_paths=["data/20241202/03bar_scan.mat"] # xshift = 0.4
     # xstretch = 0.38
     # ystretch = 1.0
+# det_data_paths=["data/20241211/20_long.mat"]
+det_data_paths=["data/20241211/direct_long.mat"] 
 
-direct_measurement = false
+direct_measurement = true
 # p1 = compare_hitran(hitran_path, det_data_paths , direct_measurement)
 # p1 = compare_hitran2(hitran_path, det_data_paths , direct_measurement)
 # p1,p2=compare_hitran_derivative(hitran_path, det_data_paths,false)
-p1,p2=compare_hitran_derivative_with_adjusted_scale(hitran_path, det_data_paths)
-
+if direct==true
+    compare_direct_and_derived_lines(direct_path, mod_paths, pres_paths)
+else
+    p1,p2=compare_hitran_derivative_with_adjusted_scale(hitran_path, det_data_paths)
+end
 savefig(p1,det_data_paths[1][1:end-3]*"hitran_L_prime.png") #nb for vector of paths
 savefig(p2,det_data_paths[1][1:end-3]*"hitran_L.png")
 
