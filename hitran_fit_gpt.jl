@@ -236,8 +236,8 @@ direct_measurement = true
 # p1 = compare_hitran(hitran_path, det_data_paths , direct_measurement)
 # p1 = compare_hitran2(hitran_path, det_data_paths , direct_measurement)
 # p1,p2=compare_hitran_derivative(hitran_path, det_data_paths,false)
-if direct==true
-    compare_direct_and_derived_lines(direct_path, mod_paths, pres_paths)
+if direct_measurement==true
+    compare_direct_and_derived_lines(det_data_paths, mod_paths, pres_paths)
 else
     p1,p2=compare_hitran_derivative_with_adjusted_scale(hitran_path, det_data_paths)
 end

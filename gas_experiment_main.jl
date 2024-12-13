@@ -54,8 +54,9 @@ global const data_points_per_half_period=round(Int,data_points_per_period/2)
 # # ld_data_path="data/20241211/20_long.txt"
 
 
-det_data_path="data/20241211/dierct_13.mat" 
-ld_data_path="data/20241211/direct_13_deg.txt"
+det_data_path="data/20241211/40_long.mat" 
+ld_data_path="data/20241211/40_long.txt"
+
 ld_data=load_ld_data(ld_data_path)
 
 

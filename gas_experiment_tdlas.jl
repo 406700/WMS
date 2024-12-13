@@ -22,11 +22,15 @@ load_det_data=false
 # ld_data_path="data/20241128/gas_no_mod.txt"
 
 #########################################################################20241211
-det_data_path="data/20241211/direct_long.mat"
-ld_data_path="data/20241211/direct_long.txt"
+# det_data_path="data/20241211/direct_long.mat"
+# ld_data_path="data/20241211/direct_long.txt"
 
-# det_data_path="data/20241211/dierct_13.mat" 
-# ld_data_path="data/20241211/direct_13_deg.txt"
+det_data_path="data/20241211/dierct_13.mat" 
+ld_data_path="data/20241211/direct_13_deg.txt"
+
+# det_data_path="data/20241211/no_gas_long.mat" 
+# ld_data_path="data/20241211/no_gas_long.txt"
+
 ld_data=load_ld_data(ld_data_path)
 
 ref_chan_dict, sig_chan_dict,  time_chan_dict,  temp_setpoint_dict,  temp_sensor_dict,  time_ld_dict = process_det_data(det_data_path,ld_data,load_det_data)
@@ -177,7 +181,7 @@ for key in keys(ref_chan_dict)
     ref_chan,sig_chan=get_normalization_coefficient(ref_chan,sig_chan,Int(data_points_per_period))
     ref_chan_dict[key] = ref_chan
     sig_chan_dict[key] = sig_chan
-    L_dict[key]=sig_chan./ref_chan
+    # L_dict[key]=sig_chanref_chan
 
     L_time_axis=@view(time_chan[1:end])
     time_indices=nearest_indices_sorted(time_ld_dict[key],L_time_axis)
@@ -193,10 +197,16 @@ for key in keys(L_dict)
     end
 end
 
-key=1
-plot(L_temp_axis[key][1:100:end],L_dict[key][1:100:end])
+GC.gc()
+p=plot()
+for key in keys(L_dict)
+    plot!(p,L_temp_axis[key][1:100:end],L_dict[key][1:100:end])
+end
+display(p)
 
-save(det_data_path[1:end-3]*"_L_direct.jld2",Dict(string(key) => value for (key, value) in L_dict))
+
+save(det_data_path[1:end-3]*"sig_direct.jld2",Dict(string(key) => value for (key, value) in sig_chan_dict))
+save(det_data_path[1:end-3]*"ref_direct.jld2",Dict(string(key) => value for (key, value) in ref_chan_dict))
 save(det_data_path[1:end-3]*"_L_direct_temp.jld2",Dict(string(key) => value for (key, value) in L_temp_axis))
 # foo=load((det_data_path[1:end-3]*"_L.jld2"))
 # plot(rollmean(foo["1"],1000)[1:10:end])
