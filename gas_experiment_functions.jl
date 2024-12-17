@@ -92,7 +92,7 @@ function find_scan_turning_points(ref_chan,scan_period)
         push!(turning_points, turning_point)
         i=i+1
     end
-   
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
     return turning_points
 end
 function load_ld_data(ld_data_path)
@@ -199,7 +199,37 @@ function calculate_iplus_iminus(ref_chan,rise_time,trig_indices,I_0) #already no
     i_minus=mean(i_minus)/I_0
     return i_plus,i_minus #NB not exactly I_0 but accounts for the difference in the intensity over time
 end
+function calculate_L_prime_over_L_function(ref_chan, sig_chan,trig_indices,ref_trig_level_slope,ref_trig_level_intercept)
+    trigger_level(x) = ref_trig_level_slope *x .+ ref_trig_level_intercept
+    rise_time=7
+    fall_time=7 #NB should be equivalent to be safe #the rise time of the intensity signal from the trigger point. total risetime = 2x risetime
+    
+    Lprime_over_L= []
+    
+    for i in 1:2:(length(trig_indices)-2) #the start of every period
+        
+        local_data=sig_chan[trig_indices[i]:trig_indices[i+2]]
+        I_0=mean(ref_chan[trig_indices[i]:trig_indices[i+2]] )
 
+        if I_0<0
+            error("I_0 less than 1")
+        end
+        high_level=mean(ref_chan[trig_indices[i]+rise_time:trig_indices[i+1]-fall_time])
+        low_level=mean(ref_chan[trig_indices[i+1]+fall_time:trig_indices[i+2]-rise_time])
+        if high_level<low_level
+            error("high level below low level")
+        end
+
+        Δim=(high_level-low_level)/(2*I_0)
+
+        i_plus, i_minus = calculate_iplus_iminus(local_data,rise_time,trig_indices[i:i+2],1.0) #unnormalized
+        ans=(-Δim*i_plus+i_minus)/(i_plus-Δim*i_minus)
+        push!(Lprime_over_L,ans)
+        
+
+    end
+    return Lprime_over_L
+end
 function calculate_L_L_prime_for_scan(ref_chan, sig_chan,trig_indices,ref_trig_level_slope,ref_trig_level_intercept,norm)
     trigger_level(x) = ref_trig_level_slope *x .+ ref_trig_level_intercept
     rise_time=7
@@ -476,3 +506,12 @@ function interpolate_hitran()
 
     return itp,itp2,start,stop
 end
+function numerical_derivative(x,y)
+
+    line_derivative = zeros(Float64, length(y))  
+    for i in 2:Int(length(x)-1)
+         # Central difference formula
+         line_derivative[i]  = (y[i+1] - y[i-1]) / (x[i+1] - x[i-1])
+     end
+     return x,line_derivative
+ end

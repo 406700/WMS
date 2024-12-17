@@ -25,8 +25,8 @@ load_det_data=false
 # det_data_path="data/20241211/direct_long.mat"
 # ld_data_path="data/20241211/direct_long.txt"
 
-det_data_path="data/20241211/dierct_13.mat" 
-ld_data_path="data/20241211/direct_13_deg.txt"
+# det_data_path="data/20241211/dierct_13.mat" 
+# ld_data_path="data/20241211/direct_13_deg.txt"
 
 # det_data_path="data/20241211/no_gas_long.mat" 
 # ld_data_path="data/20241211/no_gas_long.txt"

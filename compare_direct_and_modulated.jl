@@ -2,12 +2,12 @@
 using JLD2,Plots,RollingFunctions
 
 
-direct_path="data/20241211/dierct_13.mat"
-
+# direct_path="data/20241211/dierct_13.mat"
+direct_path="data/20241211/direct_long"
 # direct_path="data/20241211/no_gas_long.mat"
 # # direct_path="data/20241211/no_gas_long.txt"
-mod_path="data/20241211/40_long.mat" 
-mod_path="data/20241211/40_long.txt"
+mod_path="data/20241211/20_long.mat" 
+mod_path="data/20241211/20_long.txt"
 
 
 mod_L=load(mod_path[1:end-3] * "_L.jld2") 

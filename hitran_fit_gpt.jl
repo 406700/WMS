@@ -2,15 +2,7 @@ using DelimitedFiles, Interpolations, Plots, RollingFunctions, JLD2,FiniteDiff,S
 
 # Utility Functions
 shift(x, shift) = x .+ shift
-function numerical_derivative(x,y)
 
-   line_derivative = zeros(Float64, length(y))  
-   for i in 2:Int(length(x)-1)
-        # Central difference formula
-        line_derivative[i]  = (y[i+1] - y[i-1]) / (x[i+1] - x[i-1])
-    end
-    return x,line_derivative
-end
 function stretch(x_axis, scaling_factor)
     x_center = (maximum(x_axis) + minimum(x_axis)) / 2
     return x_center .+ scaling_factor .* (x_axis .- x_center)
