@@ -1,5 +1,5 @@
 using DelimitedFiles, Interpolations, Plots, RollingFunctions, JLD2,FiniteDiff,Statistics
-
+include("gas_experiment_functions.jl")
 # Utility Functions
 shift(x, shift) = x .+ shift
 
@@ -170,20 +170,23 @@ function compare_hitran_derivative_with_adjusted_scale(hitran_path, det_data_pat
     p2 = plot(xlabel="wavenumber",ylabel="Transmittance")
     χ_shift = 1
 
-    plot!(p2, x, (1 .-((1 .-y)* χ_shift)), label = "HITRAN χ $χ_shift")
+    plot!(p2, x, (1 .-((1 .-y)* χ_shift)), label = "HITRAN")
     x,y =numerical_derivative(x,y)
     # matwrite("hitran_derivative.mat",Dict("wavenumber"=>x,"derivative_transmittance"=>y))
 
-    plot!(p, x, (1 .-((1 .-y)* χ_shift)), label = "HITRAN χ $χ_shift")
+    plot!(p, x, (1 .-((1 .-y)* χ_shift)), label = "")
     max_deriv=maximum(y)
     xshift = 0.3
     xstretch = 0.8
     ystretch = 1.0
     yshift = 0#0.015
-
     for (i, det_data_path) in enumerate(det_data_paths)
-        exp_line = load(det_data_path[1:end-3] * "_L_prime.jld2")["1"] 
-        exp_x= load(det_data_path[1:end-3] * "_xaxis.jld2")["1"] 
+        exp_line = load(det_data_path[1:end-3] * "_L_prime.jld2")["1"]
+        window_size=9
+        half_w = (window_size - 1) ÷ 2
+       
+        exp_line = rollmean(exp_line, window_size) 
+        exp_x= load(det_data_path[1:end-3] * "_xaxis.jld2")["1"][half_w+1:end-half_w]  
         exp_x=map_range.(exp_x,minimum(exp_x),maximum(exp_x),minimum(x),maximum(x))
         # if direct_measurement == true
         #     exp_line = rollmean(exp_line, 100)[1:500:end]
@@ -191,17 +194,14 @@ function compare_hitran_derivative_with_adjusted_scale(hitran_path, det_data_pat
       
         exp_x = stretch(exp_x, xstretch)
         # exp_x = shift.(exp_x, xshift)
-        exp_line2 = stretch(exp_line, ystretch)
+        exp_line = stretch(exp_line, ystretch)
         # exp_line2 = shift.(exp_line, yshift)
         # exp_line2=-exp_line2#nb just reversed the sign to match
-        plot!(p, exp_x.+xshift, reverse(exp_line2)/maximum(exp_line2)*max_deriv)#, label = "Experimental Line $(i): $(det_data_path)")
-   
-        # if direct_measurement == true
-        #     exp_line = rollmean(exp_line, 100)[1:500:end]
-        # end
+        plot!(p, exp_x.+xshift, reverse(exp_line)/maximum(exp_line)*max_deriv)#, label = "Experimental Line $(i): $(det_data_path)")
+            
         exp_line2 = load(det_data_path[1:end-3] * "_L.jld2")["1"] 
-        # exp_line2 = stretch(exp_line, ystretch)
-        # exp_line2 = shift.(exp_line, yshift)
+        exp_line2 =rollmean(exp_line2, window_size) 
+
         plot!(p2, exp_x.+xshift, reverse(exp_line2))
     end
 
@@ -217,14 +217,14 @@ files=readdir(hitran_path)
 hitran_path=hitran_path*files[1]
 # det_data_paths = ["data/20241128/gas_no_mod.mat"]  
 # det_data_paths=["data/20241128/gas_mod10.mat"]# ,"data/20241128/gas_mod10.mat"]
-det_data_paths=["data/20241202/01_bar_long.mat"]# ,"data/20241128/gas_mod10.mat"]
+# det_data_paths=["data/20241202/01_bar_long.mat"]# ,"data/20241128/gas_mod10.mat"]
 # det_data_paths=["data/20241202/03bar_scan.mat"] # xshift = 0.4
     # xstretch = 0.38
     # ystretch = 1.0
-# det_data_paths=["data/20241211/20_long.mat"]
-det_data_paths=["data/20241211/direct_long.mat"] 
+det_data_paths=["data/20241211/20_long.mat"]
+# det_data_paths=["data/20241211/direct_long.mat"] 
 
-direct_measurement = true
+direct_measurement = false
 # p1 = compare_hitran(hitran_path, det_data_paths , direct_measurement)
 # p1 = compare_hitran2(hitran_path, det_data_paths , direct_measurement)
 # p1,p2=compare_hitran_derivative(hitran_path, det_data_paths,false)
@@ -233,6 +233,7 @@ if direct_measurement==true
 else
     p1,p2=compare_hitran_derivative_with_adjusted_scale(hitran_path, det_data_paths)
 end
+
 savefig(p1,det_data_paths[1][1:end-3]*"hitran_L_prime.png") #nb for vector of paths
 savefig(p2,det_data_paths[1][1:end-3]*"hitran_L.png")
 

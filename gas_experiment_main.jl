@@ -85,7 +85,7 @@ function get_normalization_coefficient(ref_chan,sig_chan)
 end
 
 ref_norm,sig_norm=get_normalization_coefficient(ref_chan_dict[1],sig_chan_dict[1])
-calculate_Lprime_over_L=true
+calculate_Lprime_over_L=false
 
 if calculate_Lprime_over_L==true
     for i in keys(ref_chan_dict)
@@ -176,47 +176,47 @@ else
         end
     end
     
-    p=plot()
-    for key in keys(L_prime_dict)
-        plot!(p,L_temp_axis[key],L_prime_dict[key],xlabel="temperature",ylabel="transmittance",label="scan $key")
-        # plot!(p,L_dict[key])
-    end
-    display(p)
-    savefig(det_data_path[1:end-3]*"_L_prime.png")
+    # p=plot()
+    # for key in keys(L_prime_dict)
+    #     plot!(p,L_temp_axis[key],L_prime_dict[key],xlabel="temperature",ylabel="transmittance",label="scan $key")
+    #     # plot!(p,L_dict[key])
+    # end
+    # display(p)
+    # savefig(det_data_path[1:end-3]*"_L_prime.png")
 
-    p=plot()
-    for key in keys(L_prime_dict)
-        plot!(p,L_temp_axis[key],L_prime_dict[key],xlabel="temperature",ylabel="transmittance",label="scan $key")
-        # plot!(p,L_dict[key])
-    end
-    display(p)
-    savefig(det_data_path[1:end-3]*"_L_prime.png")
+    # p=plot()
+    # for key in keys(L_prime_dict)
+    #     plot!(p,L_temp_axis[key],L_prime_dict[key],xlabel="temperature",ylabel="transmittance",label="scan $key")
+    #     # plot!(p,L_dict[key])
+    # end
+    # display(p)
+    # savefig(det_data_path[1:end-3]*"_L_prime.png")
 
-    averages=101 #NB odd number for center
-    p=plot()
-    for key in keys(L_dict)
-        xdata=L_temp_axis[key][Int(averages/2+0.5):Int(end-averages/2+0.5)]
-        ydata=rollmean(L_dict[key],averages)
-        println(length(xdata))
-        println(length(ydata))
-        plot!(p,xdata,ydata,xlabel="temperature",ylabel="transmittance",label="scan $key")
-        # plot!(p,L_dict[key])
-    end
-    display(p)
-    savefig(det_data_path[1:end-3]*"_L_avg_$averages.png")
+    # averages=101 #NB odd number for center
+    # p=plot()
+    # for key in keys(L_dict)
+    #     xdata=L_temp_axis[key][Int(averages/2+0.5):Int(end-averages/2+0.5)]
+    #     ydata=rollmean(L_dict[key],averages)
+    #     println(length(xdata))
+    #     println(length(ydata))
+    #     plot!(p,xdata,ydata,xlabel="temperature",ylabel="transmittance",label="scan $key")
+    #     # plot!(p,L_dict[key])
+    # end
+    # display(p)
+    # savefig(det_data_path[1:end-3]*"_L_avg_$averages.png")
 
 
-    p=plot()
-    for key in keys(L_dict)
-        xdata=L_temp_axis[key][Int(averages/2+0.5):Int(end-averages/2+0.5)]
-        ydata=rollmean(L_prime_dict[key],averages)
-        println(length(xdata))
-        println(length(ydata))
-        plot!(p,xdata,ydata,xlabel="temperature",ylabel="transmittance",label="scan $key")
-        # plot!(p,L_dict[key])
-    end
-    display(p)
-    savefig(det_data_path[1:end-3]*"_L_prime_avg_$averages.png")
+    # p=plot()
+    # for key in keys(L_dict)
+    #     xdata=L_temp_axis[key][Int(averages/2+0.5):Int(end-averages/2+0.5)]
+    #     ydata=rollmean(L_prime_dict[key],averages)
+    #     println(length(xdata))
+    #     println(length(ydata))
+    #     plot!(p,xdata,ydata,xlabel="temperature",ylabel="transmittance",label="scan $key")
+    #     # plot!(p,L_dict[key])
+    # end
+    # display(p)
+    # savefig(det_data_path[1:end-3]*"_L_prime_avg_$averages.png")
 
     save(det_data_path[1:end-3]*"_L.jld2",Dict(string(key) => value for (key, value) in L_dict))
     save(det_data_path[1:end-3]*"_L_prime.jld2",Dict(string(key) => value for (key, value) in L_prime_dict))
