@@ -1,5 +1,54 @@
 ## compare L and L_direct.
 using JLD2,Plots,RollingFunctions, PyPlot
+
+function average_vector_in_chunks(x, y, chunk_size)
+    num_chunks = Int(floor(length(y)/chunk_size))
+    remainder = length(y) - chunk_size*num_chunks
+
+    if iseven(chunk_size)
+        error("even nun-chucks")
+    end
+
+    println(remainder)
+    if isodd(remainder) && remainder > 1
+        half_remainder = (remainder - 1) ÷ 2
+        y = y[half_remainder+1:end-half_remainder]
+        x = x[half_remainder+1:end-half_remainder]
+
+    elseif remainder > 1
+        half_remainder = remainder ÷ 2
+        y = y[half_remainder+1:end-half_remainder]
+        x = x[half_remainder+1:end-half_remainder]
+
+    else
+        y = y[1:end-1]
+        x = x[1:end-1]
+    end
+
+    avg = [mean(y[(i-1)*chunk_size+1 : i*chunk_size]) for i in 1:num_chunks]
+    x_mid = [x[(i-1)*chunk_size + (chunk_size + 1) ÷ 2] for i in 1:num_chunks]
+
+    return x_mid, avg
+end
+function nearest_odd(x::Float64)
+    # Round to the nearest integer
+    i = round(Int, x)
+    
+    # If it's already odd, return it
+    if isodd(i)
+        return i
+    end
+
+    # Otherwise, determine which adjacent odd integer is closer
+    lower_odd = i - 1
+    upper_odd = i + 1
+
+    if abs(x - lower_odd) < abs(x - upper_odd)
+        return lower_odd
+    else
+        return upper_odd
+    end
+end
 include("gas_experiment_functions.jl")
 
 total_width_in_inches = 3.5
@@ -24,9 +73,26 @@ direct_x = load(direct_path[1:end-3] * "_L_direct_temp.jld2")
 # Create the figure and axes
  fig, ax = plt.subplots(1, 1, figsize=(total_width_in_inches, subplot_height_in_inches))
 
-# Plot data
-# for key in "1"#keys(direct_L)
-#     window_size = 5001
+ for key in ["1"]#keys(direct_L)
+    average_time=0.5
+    window_size = nearest_odd(average_time*1e6) 
+    x,y = average_vector_in_chunks(direct_x[key],direct_L[key], window_size)
+    _,I0 = average_vector_in_chunks(direct_x[key],direct_I0[key], window_size)
+    y = y ./ I0
+
+    ax.plot(x, y, label="direct")
+
+    window_size=nearest_odd(average_time*1e6/500)
+    x2,y2=average_vector_in_chunks(mod_x[key],mod_L[key],window_size)
+    
+    ax.plot(x2,y2,label="20mV modulation")
+     GC.gc()
+end
+
+# # # Plot data
+# # for key in ["1"]#keys(direct_L)
+
+#     window_size = nearest_odd(0.1*1e6) 
 #     y = rollmean(direct_L[key], window_size)
 #     I0 = rollmean(direct_I0[key], window_size)
 #     half_w = (window_size - 1) ÷ 2
@@ -38,7 +104,7 @@ direct_x = load(direct_path[1:end-3] * "_L_direct_temp.jld2")
 #     ax.plot(x, y, label="direct")
 
 
-#     window_size=9
+#     window_size=nearest_odd(window_size/500)
 #     y=rollmean(mod_L[key],window_size)
 #     half_w = (window_size - 1) ÷ 2
 #     rollx = mod_x[key][half_w+1:end-half_w]    
@@ -46,13 +112,13 @@ direct_x = load(direct_path[1:end-3] * "_L_direct_temp.jld2")
 #     GC.gc()
 # end
 
-# # Finalize plot
-# ax.legend()
-# ax.set_xlabel("temperature")  # Replace with appropriate label
-# ax.set_ylabel("transmittance")  # Replace with appropriate label
-# plt.tight_layout()
-# plt.savefig("/spie_figures/20mvmod_vs_direct.png",dpi=600)
-
+# Finalize plot
+ax.legend()
+ax.set_xlabel("temperature")  # Replace with appropriate label
+ax.set_ylabel("transmittance")  # Replace with appropriate label
+plt.tight_layout()
+plt.savefig("spie_figures/20mvmod_vs_direct.png",dpi=600)
+break
 
 ###############################################################################comparision of Lprime_over_L and -1/L( dα dν)
 using Dierckx
@@ -128,10 +194,6 @@ Plots.plot(x,yprime/maximum(yprime),label="direct")
 GC.gc()
 
 window_size=500
-# Lprime_over_L=load(mod_path[1:end-3] * "Lprime_over_L.jld2") 
-# L_prime_over_L=rollmean(Lprime_over_L[key],window_size)
-# half_w = (window_size - 1) ÷ 2
-# rollx = mod_x[key][half_w+1:end-half_w]
 L_prime=load(mod_path[1:end-3] * "_L_prime.jld2") 
 L_prime=rollmean(L_prime[key],window_size)
 half_w = (window_size - 1) ÷ 2
@@ -171,63 +233,52 @@ Plots.savefig("spie_figures/spline_vs_direct")
 # 200/0.2
 
 
-###########################################################################hitran plot
-
+# ###########################################################################hitran plot
+function map_range(x, in_min, in_max, out_min, out_max)
+    return (x - in_min) / (in_max - in_min) * (out_max - out_min) + out_min
+end
+shift(x, shift) = x .+ shift
+function stretch(x_axis, scaling_factor)
+    x_center = (maximum(x_axis) + minimum(x_axis)) / 2
+    return x_center .+ scaling_factor .* (x_axis .- x_center)
+end
 
 # Main Code
 hitran_path = "data/spectraplot/"
 files=readdir(hitran_path)
 hitran_path=hitran_path*files[1]
 det_data_paths=["data/20241211/20_long.mat"]
+key="1"
+L=5.1
+dwavenumber_to_dnu=2.99e10
+Δνh=-2.99e8*12e-9/(1547e-9^2) # is the wavelength Δλ positive for increasing current?
+window_size=501
+L_prime_over_L=load(mod_path[1:end-3] * "Lprime_over_L.jld2") 
+L_prime_over_L=rollmean(L_prime_over_L[key],window_size)
+L_prime_over_L=-1/L*(L_prime_over_L/Δνh) #what is loaded is Δνh*ti/to
+half_w = (window_size - 1) ÷ 2
 
-p1,p2=compare_hitran_derivative_with_adjusted_scale(hitran_path, det_data_paths)
+mod_x = load(mod_path[1:end-3] * "_xaxis.jld2") 
+rollx = mod_x[key][half_w+1:end-half_w]
 
-savefig(p1,"/spie_figures/"*det_data_paths[1][6:end-3]*"hitran_L_prime.png") #nb for vector of paths
-savefig(p2,"/spie_figures/"*det_data_paths[1][6:end-3]*"hitran_L.png")
+data, header = readdlm(hitran_path, ',', header = true)
+hitran_x = data[:, 1]
+hitran_y = log.(data[:, 2])*-1/L #absorbance per cm 
+hitran_xprime,hitran_yprime =numerical_derivative(hitran_x,hitran_y)
+hitran_yprime=hitran_yprime./Δνh
+Plots.plot(xlabel="wavenumber",ylabel="dα/dν")
+Plots.plot!(hitran_xprime, hitran_yprime, label = "hitran")
 
-display(p1)
+xshift = 0.38
+xstretch = 0.8
+ystretch = 1.0
 
-function compare_hitran_derivative_with_adjusted_scale(hitran_path, det_data_paths)
-    data, header = readdlm(hitran_path, ',', header = true)
-    x = data[:, 1]
-    y = data[:, 2]
-    # matwrite("hitran.mat",Dict("wavenumber"=>x,"transmittance"=>y))
-    p=plot(xlabel="wavenumber",ylabel="uncalibrated derivative (a.u.)")
-    p2 = plot(xlabel="wavenumber",ylabel="Transmittance")
-    χ_shift = 1
+exp_x=map_range.(rollx,minimum(rollx),maximum(rollx),minimum(hitran_x),maximum(hitran_x)) #convert the x axis to inverse cm
+exp_x = stretch(exp_x, xstretch)
+# exp_line = stretch(exp_line, ystretch)
+scaling_factor=maximum(hitran_yprime)/maximum(-L_prime_over_L)
+Plots.plot!(exp_x.+xshift, -reverse(L_prime_over_L)*scaling_factor)#, label = "Experimental Line $(i): $(det_data_path)")
+    
+Plots.savefig("spie_figures/20241211_20_long_hitran_L_prime_over_L.png") #nb for vector of paths
 
-    plot!(p2, x, (1 .-((1 .-y)* χ_shift)), label = "HITRAN")
-    x,y =numerical_derivative(x,y)
-    # matwrite("hitran_derivative.mat",Dict("wavenumber"=>x,"derivative_transmittance"=>y))
-
-    plot!(p, x, (1 .-((1 .-y)* χ_shift)), label = "")
-    max_deriv=maximum(y)
-    xshift = 0.3
-    xstretch = 0.8
-    ystretch = 1.0
-    yshift = 0#
-    for (i, det_data_path) in enumerate(det_data_paths)
-        exp_line = load(det_data_path[1:end-3] * "_L_prime.jld2")["1"]
-        window_size=9
-        half_w = (window_size - 1) ÷ 2
-       
-        exp_line = rollmean(exp_line, window_size) 
-        exp_x= load(det_data_path[1:end-3] * "_xaxis.jld2")["1"][half_w+1:end-half_w]  
-        exp_x=map_range.(exp_x,minimum(exp_x),maximum(exp_x),minimum(x),maximum(x))
-      
-        exp_x = stretch(exp_x, xstretch)
-        exp_line = stretch(exp_line, ystretch)
-        plot!(p, exp_x.+xshift, reverse(exp_line)/maximum(exp_line)*max_deriv)#, label = "Experimental Line $(i): $(det_data_path)")
-            
-        exp_line2 = load(det_data_path[1:end-3] * "_L.jld2")["1"] 
-        exp_line2 =rollmean(exp_line2, window_size) 
-
-        plot!(p2, exp_x.+xshift, reverse(exp_line2))
-    end
-
-    return p,p2
-end
-
-function map_range(x, in_min, in_max, out_min, out_max)
-    return (x - in_min) / (in_max - in_min) * (out_max - out_min) + out_min
-end
+average_vector_in_chunks(ones(23),7)

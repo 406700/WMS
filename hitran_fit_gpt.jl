@@ -234,8 +234,8 @@ else
     p1,p2=compare_hitran_derivative_with_adjusted_scale(hitran_path, det_data_paths)
 end
 
-savefig(p1,det_data_paths[1][1:end-3]*"hitran_L_prime.png") #nb for vector of paths
-savefig(p2,det_data_paths[1][1:end-3]*"hitran_L.png")
+savefig(p1,"/spie_figures/"*det_data_paths[1][6:end-3]*"hitran_L_prime.png") #nb for vector of paths
+savefig(p2,"/spie_figures/"*det_data_paths[1][6:end-3]*"hitran_L.png")
 
 display(p1)
 
