@@ -1,11 +1,10 @@
 ## compare L and L_direct.
-using JLD2,Plots,RollingFunctions
 include("gas_experiment_functions.jl")
 
 total_width_in_inches = 3.5
 num_subplots = 1
 subplot_width_in_inches = total_width_in_inches / num_subplots
-subplot_height_in_inches = total_width_in_inches*3/5
+subplot_height_in_inches = total_width_in_inches*4/5
 fig, axs = plt.subplots(1,1, figsize=(total_width_in_inches, subplot_height_in_inches))
 
 
@@ -25,18 +24,20 @@ direct_x = load(direct_path[1:end-3] * "_L_direct_temp.jld2")
  fig, ax = plt.subplots(1, 1, figsize=(total_width_in_inches, subplot_height_in_inches))
 
  for key in ["1"]#keys(direct_L)
-    average_time=0.5
+    average_time=0.5 #seconds
+
     window_size = nearest_odd(average_time*1e6) 
     x,y = average_vector_in_chunks(direct_x[key],direct_L[key], window_size)
     _,I0 = average_vector_in_chunks(direct_x[key],direct_I0[key], window_size)
     y = y ./ I0
 
-    ax.plot(x, y, label="direct")
-
     window_size=nearest_odd(average_time*1e6/500)
     x2,y2=average_vector_in_chunks(mod_x[key],mod_L[key],window_size)
-    
-    ax.plot(x2,y2,label="20mV modulation")
+    normalization=1/maximum(y2)  
+
+    ax.plot(x, y*normalization, label="direct")
+    ax.plot(x2,y2*normalization,label="20mV modulation")
+
      GC.gc()
 end
 
@@ -100,24 +101,24 @@ function compute_and_save_rolling_mean(data, window_size, filename)
 end
 
 # Parameters
-window_size = 5001
-half_w = (window_size - 1) ÷ 2
+# window_size = 5001
+# half_w = (window_size - 1) ÷ 2
 
 key = "1"
-y_filename = "y_rolling_mean_$key.jld2"
-I0_filename = "I0_rolling_mean_$key.jld2"
+# y_filename = "y_rolling_mean_$key.jld2"
+# I0_filename = "I0_rolling_mean_$key.jld2"
 
-# Check if rolling mean for y is already computed and saved
-y = check_and_load_rolling_mean(y_filename)
-if y == nothing
-    y = compute_and_save_rolling_mean(direct_L[key], window_size, y_filename)
-end
+# # Check if rolling mean for y is already computed and saved
+# y = check_and_load_rolling_mean(y_filename)
+# if y == nothing
+#     y = compute_and_save_rolling_mean(direct_L[key], window_size, y_filename)
+# end
 
-# Check if rolling mean for I0 is already computed and saved
-I0 = check_and_load_rolling_mean(I0_filename)
-if I0 == nothing
-    I0 = compute_and_save_rolling_mean(direct_I0[key], window_size, I0_filename)
-end
+# # Check if rolling mean for I0 is already computed and saved
+# I0 = check_and_load_rolling_mean(I0_filename)
+# if I0 == nothing
+#     I0 = compute_and_save_rolling_mean(direct_I0[key], window_size, I0_filename)
+# end
 
 
 # key="1"

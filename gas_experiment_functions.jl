@@ -1,7 +1,17 @@
-using MAT,DelimitedFiles,Dates,Plots,Statistics,EasyFit,RollingFunctions,Mmap,Serialization,Infiltrator,RollingFunctions,JLD2,Interpolations,PyPlot
+using MAT,DelimitedFiles,Dates,Plots,Statistics,EasyFit,RollingFunctions,Mmap,Serialization,Infiltrator,RollingFunctions,JLD2,Interpolations
 #should rise and fall times be equivalent?
 
 
+import PyPlot; const plt = PyPlot;
+using PyCall
+rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams");
+function set_default_font(font_path::String)
+    fm = pyimport("matplotlib.font_manager")
+    font_prop = fm.FontProperties(fname=font_path)
+    font_name = font_prop.get_name()
+    rcParams["font.family"] = font_name
+end
+set_default_font("/usr/share/fonts/truetype/msttcorefonts/Times_New_Roman.ttf")
 total_width_in_inches = 3.5
 aspect_ratio=2.5/4
 # rcParams["text.usetex"]=true #keep off for now due to font uses. only use if necessary.
@@ -16,15 +26,7 @@ rcParams["figure.titlesize"]=8
 rcParams["mathtext.default"]="regular"
 # rcParams["lines.marker"] = "."  # Set default marker
 rcParams["lines.markersize"] = 4 
-# plt.rcParams.update({
-#     "font.size': 8,
-#     'axes.titlesize': 8,
-#     'axes.labelsize': 8,
-#     'xtick.labelsize': 8,
-#     'ytick.labelsize': 8,
-#     'legend.fontsize': 8,
-#     'figure.titlesize': 8
-# })
+
 
 function optimized_findfirst(ref_chan,trig_level)
     threshold = trig_level * maximum(ref_chan)  # Precompute the threshold
