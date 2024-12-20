@@ -9,7 +9,54 @@ function optimized_findfirst(ref_chan,trig_level)
     end
     return nothing  # Return nothing if no element matches
 end
+function average_vector_in_chunks(x, y, chunk_size)
+    num_chunks = Int(floor(length(y)/chunk_size))
+    remainder = length(y) - chunk_size*num_chunks
 
+    if iseven(chunk_size)
+        error("even nun-chucks")
+    end
+
+    println(remainder)
+    if isodd(remainder) && remainder > 1
+        half_remainder = (remainder - 1) ÷ 2
+        y = y[half_remainder+1:end-half_remainder]
+        x = x[half_remainder+1:end-half_remainder]
+
+    elseif remainder > 1
+        half_remainder = remainder ÷ 2
+        y = y[half_remainder+1:end-half_remainder]
+        x = x[half_remainder+1:end-half_remainder]
+
+    else
+        y = y[1:end-1]
+        x = x[1:end-1]
+    end
+
+    avg = [mean(y[(i-1)*chunk_size+1 : i*chunk_size]) for i in 1:num_chunks]
+    x_mid = [x[(i-1)*chunk_size + (chunk_size + 1) ÷ 2] for i in 1:num_chunks]
+
+    return x_mid, avg
+end
+function nearest_odd(x::Float64)
+    # Round to the nearest integer
+    i = round(Int, x)
+    
+    # If it's already odd, return it
+    if isodd(i)
+        return i
+    end
+
+    # Otherwise, determine which adjacent odd integer is closer
+    lower_odd = i - 1
+    upper_odd = i + 1
+
+    if abs(x - lower_odd) < abs(x - upper_odd)
+        return lower_odd
+    else
+        return upper_odd
+    end
+end
 # function read_det_data(det_data_path,trig_level)
 #     data=matread("data/"*det_data_path) 
 #     delete!(data, "Timestamps_us\0\0\0")
