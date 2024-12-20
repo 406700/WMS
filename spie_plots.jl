@@ -1,5 +1,5 @@
 ## compare L and L_direct.
-using JLD2,Plots,RollingFunctions, PyPlot
+using JLD2,Plots,RollingFunctions
 include("gas_experiment_functions.jl")
 
 total_width_in_inches = 3.5

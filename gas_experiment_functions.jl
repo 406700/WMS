@@ -1,5 +1,31 @@
-using MAT,DelimitedFiles,Dates,Plots,Statistics,EasyFit,RollingFunctions,Mmap,Serialization,Infiltrator,RollingFunctions,JLD2,Interpolations
+using MAT,DelimitedFiles,Dates,Plots,Statistics,EasyFit,RollingFunctions,Mmap,Serialization,Infiltrator,RollingFunctions,JLD2,Interpolations,PyPlot
 #should rise and fall times be equivalent?
+
+
+total_width_in_inches = 3.5
+aspect_ratio=2.5/4
+# rcParams["text.usetex"]=true #keep off for now due to font uses. only use if necessary.
+rcParams["figure.figsize"] = (total_width_in_inches, total_width_in_inches*aspect_ratio)
+rcParams["figure.dpi"] = 800
+rcParams["lines.linewidth"]=0.6
+rcParams["axes.titlesize"]=8
+rcParams["xtick.labelsize"]=6
+rcParams["ytick.labelsize"]=6
+rcParams["legend.fontsize"]=6
+rcParams["figure.titlesize"]=8
+rcParams["mathtext.default"]="regular"
+# rcParams["lines.marker"] = "."  # Set default marker
+rcParams["lines.markersize"] = 4 
+# plt.rcParams.update({
+#     "font.size': 8,
+#     'axes.titlesize': 8,
+#     'axes.labelsize': 8,
+#     'xtick.labelsize': 8,
+#     'ytick.labelsize': 8,
+#     'legend.fontsize': 8,
+#     'figure.titlesize': 8
+# })
+
 function optimized_findfirst(ref_chan,trig_level)
     threshold = trig_level * maximum(ref_chan)  # Precompute the threshold
     for (i, val) in enumerate(ref_chan)  # Iterate through the array with indices
