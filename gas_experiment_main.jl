@@ -2,7 +2,8 @@ include("gas_experiment_functions.jl")
 load_det_data=false
 
 global const sampling_rate=1e6
-global const mod_rate=2e3
+global const mod_rate=5e3 
+println("NB set modulation rate. current = $mod_rate")
 global const data_points_per_period=sampling_rate/mod_rate
 global const data_points_per_half_period=round(Int,data_points_per_period/2)
 
@@ -50,28 +51,46 @@ global const data_points_per_half_period=round(Int,data_points_per_period/2)
 
 ##############################################################################20241211
 
-det_data_path="data/20241211/20_long.mat" 
-ld_data_path="data/20241211/20_long.txt"
+# det_data_path="data/20241211/20_long.mat" 
+# ld_data_path="data/20241211/20_long.txt"
 
 
 # det_data_path="data/20241211/40_long.mat" 
 # ld_data_path="data/20241211/40_long.txt"
 
+##############################################################################20241220 2 and k kHz, with and without loss.
+
+# det_data_path="data/20241220/2khz_20.mat" 
+# ld_data_path="data/20241220/2khz_20.txt"
+
+# det_data_path="data/20241220/2khz_20_loss.mat" 
+# ld_data_path="data/20241220/2khz_20_with_loss.txt"
+
+
+det_data_path="data/20241220/5khz_20.mat" 
+ld_data_path="data/20241220/5khz_20.txt"
+
+global const mod_rate=5e3 #NB!! for 5khz
+# det_data_path="data/20241220/5khz_20_loss.mat" 
+# ld_data_path="data/20241220/5khz_20_with_loss.txt"
+###########################################################################################################################################################################start
+calculate_Lprime_over_L=false 
+# # global const mod_rate=5e3 NB!! double check this and set where located.
+
 ld_data=load_ld_data(ld_data_path)
 
-
 ref_chan_dict, sig_chan_dict,  time_chan_dict,  temp_setpoint_dict,  temp_sensor_dict,  time_ld_dict = process_det_data(det_data_path,ld_data,load_det_data)
-    
-
+ 
+#initialize dictionaries for data storage and saving
 L_dict = Dict{Int, Array{Float64}}()
 L_prime_dict = Dict{Int, Array{Float64}}()
 trig_dict = Dict{Int, Tuple{Float64, Float64}}()
 L_temp_axis = Dict{Int, Array{Float64}}()
 Lprime_over_L= Dict{Int, Array{Float64}}()
+trig_indices_dict= Dict{Int, Array{Float64}}()
+
 # Loop over all keys in the dictionaries
 function get_normalization_coefficient(ref_chan,sig_chan)
-    
-
     downsample = 100
     # Find reference trigger level
     ref_trig_level_slope, ref_trig_level_intercept = find_ref_trigger_level(ref_chan, downsample)
@@ -84,14 +103,14 @@ function get_normalization_coefficient(ref_chan,sig_chan)
     return mean(ref_chan[trig_indices[1]:trig_indices[3]]),mean(sig_chan[trig_indices[1]:trig_indices[3]])
 end
 
-ref_norm,sig_norm=get_normalization_coefficient(ref_chan_dict[1],sig_chan_dict[1])
-calculate_Lprime_over_L=false
+# ref_norm,sig_norm=get_normalization_coefficient(ref_chan_dict[1],sig_chan_dict[1]) #outdated?
 
 if calculate_Lprime_over_L==true
     for i in keys(ref_chan_dict)
         println("key=$i")
     
-        downsample = 100
+        downsample = 100 #speed up finding the trigger level fit.
+
         # Find reference trigger level
         ref_trig_level_slope, ref_trig_level_intercept = find_ref_trigger_level(ref_chan_dict[i], downsample)
 
@@ -101,8 +120,8 @@ if calculate_Lprime_over_L==true
         # Trim channels
         ref_chan_trim, sig_chan_trim, time_chan_trim, trig_indices_trim = trim_channels(ref_chan_dict[i] , sig_chan_dict[i],time_chan_dict[i], trig_indices, 2)
 
-        ref_chan_trim=ref_chan_trim#/ref_norm
-        sig_chan_trim=sig_chan_trim#/sig_norm
+        ref_chan_trim=ref_chan_trim
+        sig_chan_trim=sig_chan_trim
 
         # Recalculate the reference trigger level for trimmed and normalized data
         ref_trig_level_slope, ref_trig_level_intercept = find_ref_trigger_level(ref_chan_trim, downsample)
@@ -124,6 +143,7 @@ if calculate_Lprime_over_L==true
         if iseven(key)
             Lprime_over_L[key]=reverse(Lprime_over_L[key])
             L_temp_axis[key]=reverse(L_temp_axis[key])
+
         end
     end
 
@@ -140,11 +160,11 @@ else
         #NB trigger will be off for any hooked shaped scan data, i.e when the ld temp goes through a minimum or maximum. Effect will be greatest at the start of the scan, but will have a small effect on all trigger points, due to wrong trig slope.
 
         # Find trigger indices
-        trig_indices = find_pulse_trig_points(ref_chan_dict[i] , ref_trig_level_intercept, ref_trig_level_slope, data_points_per_half_period)
-
+       trig_indices = find_pulse_trig_points(ref_chan_dict[i] , ref_trig_level_intercept, ref_trig_level_slope, data_points_per_half_period)
+      
         # Trim channels
         ref_chan_trim, sig_chan_trim, time_chan_trim, trig_indices_trim = trim_channels(ref_chan_dict[i] , sig_chan_dict[i],time_chan_dict[i], trig_indices, 2)
-
+        trig_indices_dict[i]=trig_indices_trim
         #  @infiltrate 
         # Normalize channels
         # ref_chan, sig_chan = normalize_channels(ref_chan, sig_chan, trig_indices)

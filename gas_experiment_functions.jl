@@ -261,7 +261,7 @@ function L0_prime(i_p,i_m,Δν_h,Δim)
    1/(Δν_h*2*(1-Δim^2))*(i_m-Δim*i_p)
 end
 
-function calculate_iplus_iminus(ref_chan,rise_time,trig_indices,I_0) #already normalized
+function calculate_iplus_iminus(ref_chan,rise_time,trig_indices,I_0) #NB! superceded by <h>, <low>, see paper for math equivalence. #already normalized
     # @infiltrate
     sample_length=minimum(diff(trig_indices)) #find the spacing between trigger points, and use the smallest one to keep in bounds
     
@@ -283,8 +283,8 @@ function calculate_L_prime_over_L_function(ref_chan, sig_chan,trig_indices,ref_t
     
     for i in 1:2:(length(trig_indices)-2) #the start of every period
         
-        local_data=sig_chan[trig_indices[i]:trig_indices[i+2]]
-        I_0=mean(ref_chan[trig_indices[i]:trig_indices[i+2]] )
+        local_data=sig_chan[trig_indices[i]:trig_indices[i+2]] #data for a single period
+        I_0=mean(ref_chan[trig_indices[i]:trig_indices[i+2]] ) # the ref power for this period
 
         if I_0<0
             error("I_0 less than 1")
@@ -297,11 +297,13 @@ function calculate_L_prime_over_L_function(ref_chan, sig_chan,trig_indices,ref_t
 
         Δim=(high_level-low_level)/(2*I_0)
 
-        i_plus, i_minus = calculate_iplus_iminus(local_data,rise_time,trig_indices[i:i+2],1.0) #unnormalized
-        ans=(-Δim*i_plus+i_minus)/(i_plus-Δim*i_minus)
+        # i_plus, i_minus = calculate_iplus_iminus(local_data,rise_time,trig_indices[i:i+2],1.0) #unnormalized
+        i_plus=mean(sig_chan[trig_indices[i]+rise_time:trig_indices[i+1]-fall_time])/I_0
+        i_minus=mean(sig_chan[trig_indices[i+1]+fall_time:trig_indices[i+2]-rise_time])/I_0    
+
+        ans=(-Δim*i_plus+i_minus)/(i_plus-Δim*i_minus) #directly calculate T'/T
         push!(Lprime_over_L,ans)
         
-
     end
     return Lprime_over_L
 end
@@ -321,8 +323,7 @@ function calculate_L_L_prime_for_scan(ref_chan, sig_chan,trig_indices,ref_trig_l
         local_data=sig_chan[trig_indices[i]:trig_indices[i+2]]
         # I_0=trigger_level(trig_indices[i+1])
         I_0=mean(ref_chan[trig_indices[i]:trig_indices[i+2]] )
-        if I_0<0
-          
+        if I_0<0          
             error("I_0 less than 1")
         end
         high_level=mean(ref_chan[trig_indices[i]+rise_time:trig_indices[i+1]-fall_time])
@@ -332,12 +333,15 @@ function calculate_L_L_prime_for_scan(ref_chan, sig_chan,trig_indices,ref_trig_l
             error("high level below low level")
         end
         Δim=(high_level-low_level)/(2*I_0)
-
+        println("Δim = $Δim")
         #FP_modulation_sensitiviy=FP_shift/FP_modulation_amplitude#3.5e-9#meters/volt #measured calibration factor, not needed if measured_delta_lambda is available.
         # d_lambda_d_t=FP_shift/(1/(2*FP_frequency))#*1e12 #m #cycles/second  #NB could also be determined in terms of the min and max wavelength
         Δν_h=-1#-3e10 #1/Δim*(-3e9)#(average_ν-ν_0)#<v>-vo/deltap/p  
         
-        i_plus, i_minus = calculate_iplus_iminus(local_data,rise_time,trig_indices[i:i+2],I_0*norm) #
+        # i_plus, i_minus = calculate_iplus_iminus(local_data,rise_time,trig_indices[i:i+2],I_0*norm) #
+        i_plus=mean(sig_chan[trig_indices[i]+rise_time:trig_indices[i+1]-fall_time])/I_0*norm
+        i_minus=mean(sig_chan[trig_indices[i+1]+fall_time:trig_indices[i+2]-rise_time])/I_0*norm
+
         push!(L,L0(i_plus, i_minus, Δim))
         push!(L_prime, L0_prime(i_plus, i_minus, Δν_h, Δim) )
         push!(i_minus_all,i_minus)
@@ -588,5 +592,5 @@ function numerical_derivative(x,y)
          # Central difference formula
          line_derivative[i]  = (y[i+1] - y[i-1]) / (x[i+1] - x[i-1])
      end
-     return x,line_derivative
+     return x[2:end],line_derivative[2:end]
  end
