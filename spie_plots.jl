@@ -360,15 +360,15 @@ fig2, ax2 = plt.subplots(1, 1, figsize=(total_width_in_inches, subplot_height_in
 mod_path    = "data/20250107/2khz_20.mat"
 ld_data_path = "data/20250107/2khz_20.txt"
 
-mod_L  = load(mod_path[1:end-3] * "_L.jld2")
+mod_L  = load(mod_path[1:end-3] * "_L_prime.jld2")
 mod_x  = load(mod_path[1:end-3] * "_xaxis.jld2")
 L_prime_over_L = load("data/20250107/2khz_20.Lprime_over_L.jld2")
 
 mod_path_loss = "data/20250107/2khz_20_loss.mat"
-ld_data_path_loss = "data/20250107/2khz_20_with_loss.txt"
+ld_data_path_loss = "data/20250107/2khz_20_loss.txt"
 
 L_prime_over_L2 = load("data/20250107/2khz_20_loss.Lprime_over_L.jld2")
-mod_L2 = load(mod_path_loss[1:end-3] * "_L.jld2")
+mod_L2 = load(mod_path_loss[1:end-3] * "_L_prime.jld2")
 mod_x2 = load(mod_path_loss[1:end-3] * "_xaxis.jld2")
 
 L = 5.1

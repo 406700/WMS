@@ -22,8 +22,8 @@ load_det_data=false
 # ld_data_path="data/20241128/gas_no_mod.txt"
 
 #########################################################################20241211
-# det_data_path="data/20241211/direct_long.mat"
-# ld_data_path="data/20241211/direct_long.txt"
+det_data_path="data/20241211/direct_long.mat"
+ld_data_path="data/20241211/direct_long.txt"
 
 # det_data_path="data/20241211/dierct_13.mat" 
 # ld_data_path="data/20241211/direct_13_deg.txt"

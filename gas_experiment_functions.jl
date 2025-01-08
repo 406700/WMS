@@ -112,8 +112,9 @@ function read_det_data(det_data_path,trig_level)
     GC.gc()
     sig_chan=read(matfile,"AI_Ch1")[start_trigger:stop_trigger]
     time_chan=read(matfile,"AI_Ch0_Xms")[start_trigger:stop_trigger]
+    ref_chan=ref_chan[start_trigger:stop_trigger]
     close(matfile)
-    return ref_chan[start_trigger:stop_trigger],sig_chan,time_chan.-time_chan[1]
+    return ref_chan,sig_chan,time_chan.-time_chan[1]
 
 end
 function divide_scans_by_time(time_chan,temp_data,temp_time)
@@ -179,19 +180,6 @@ function load_ld_data(ld_data_path)
     ld_data=Dict("temp_setpoint"=>temp_set,"temp_sensor"=>temp_sens,"time"=>ld_time)
     return ld_data
 end
-# function read_det_data(det_data_path,trig_level)
-#     matfile=matopen("data/"*det_data_path)   #Use with read, write, close, keys, and haskey.
-#     sig_chan=read(matfile, "AI_Ch1")
-#     ref_chan=read(matfile, "AI_Ch0")
-#     close(matfile)
-
-#     start_trigger=optimized_findfirst(ref_chan,trig_level)
-#     stop_trigger=optimized_findfirst(reverse(ref_chan),trig_level)
-#     stop_trigger=length(ref_chan)-stop_trigger
-#     sig_chan=sig_chan[start_trigger:stop_trigger]
-#     ref_chan=ref_chan[start_trigger:stop_trigger]
-#     return ref_chan,sig_chan
-# end
 
 function divide_scans(ref_chan, sig_chan,start_index,stop_index)
     return ref_chan[start_index:stop_index],sig_chan[start_index:stop_index]
@@ -296,10 +284,11 @@ function calculate_L_prime_over_L_function(ref_chan, sig_chan,trig_indices,ref_t
         end
 
         Δim=(high_level-low_level)/(2*I_0)
-
+        high=mean(sig_chan[trig_indices[i]+rise_time:trig_indices[i+1]-fall_time])
+        low=mean(sig_chan[trig_indices[i+1]+fall_time:trig_indices[i+2]-rise_time])
+        i_plus=(high+low)/I_0
+        i_minus=(high-low)/I_0
         # i_plus, i_minus = calculate_iplus_iminus(local_data,rise_time,trig_indices[i:i+2],1.0) #unnormalized
-        i_plus=mean(sig_chan[trig_indices[i]+rise_time:trig_indices[i+1]-fall_time])/I_0
-        i_minus=mean(sig_chan[trig_indices[i+1]+fall_time:trig_indices[i+2]-rise_time])/I_0    
 
         ans=(-Δim*i_plus+i_minus)/(i_plus-Δim*i_minus) #directly calculate T'/T
         push!(Lprime_over_L,ans)
@@ -333,21 +322,22 @@ function calculate_L_L_prime_for_scan(ref_chan, sig_chan,trig_indices,ref_trig_l
             error("high level below low level")
         end
         Δim=(high_level-low_level)/(2*I_0)
-        println("Δim = $Δim")
+        println("Δim = $Δim I0")
         #FP_modulation_sensitiviy=FP_shift/FP_modulation_amplitude#3.5e-9#meters/volt #measured calibration factor, not needed if measured_delta_lambda is available.
         # d_lambda_d_t=FP_shift/(1/(2*FP_frequency))#*1e12 #m #cycles/second  #NB could also be determined in terms of the min and max wavelength
         Δν_h=-1#-3e10 #1/Δim*(-3e9)#(average_ν-ν_0)#<v>-vo/deltap/p  
         
-        # i_plus, i_minus = calculate_iplus_iminus(local_data,rise_time,trig_indices[i:i+2],I_0*norm) #
-        i_plus=mean(sig_chan[trig_indices[i]+rise_time:trig_indices[i+1]-fall_time])/I_0*norm
-        i_minus=mean(sig_chan[trig_indices[i+1]+fall_time:trig_indices[i+2]-rise_time])/I_0*norm
+        # i_plus, i_minus = calculate_iplus_iminus(local_data,rise_time,trig_indices[i:i+2],I_0) #
+        high=mean(sig_chan[trig_indices[i]+rise_time:trig_indices[i+1]-fall_time])
+        low=mean(sig_chan[trig_indices[i+1]+fall_time:trig_indices[i+2]-rise_time])
+        i_plus=(high+low)/I_0
+        i_minus=(high-low)/I_0
 
         push!(L,L0(i_plus, i_minus, Δim))
         push!(L_prime, L0_prime(i_plus, i_minus, Δν_h, Δim) )
         push!(i_minus_all,i_minus)
         push!(i_plus_all,i_plus)
         push!(I0_all,I_0)
-
     end
     # I_minus=i_minus_all.*I0_all
     # I_plus=(i_plus_all.*I0_all)
@@ -432,7 +422,7 @@ end
 function process_det_data(det_data_path::String, ld_data, load_det_data::Bool)
     if !load_det_data
         # Load and configure to det data
-        ref_chan, sig_chan, time_chan = read_det_data(det_data_path, 0.995)  # trigger level
+        ref_chan, sig_chan, time_chan = read_det_data(det_data_path, 0.995)  # trigger level, cuts the data from the point the laser diode turns on. trigger sets what percent of the maximum value it triggers on.
         GC.gc()
 
         # Coordinate the scans
