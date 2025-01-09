@@ -112,7 +112,8 @@ function get_normalization_coefficient(ref_chan,sig_chan)
 end
 
 ref_norm,sig_norm=get_normalization_coefficient(ref_chan_dict[1],sig_chan_dict[1]) #calculates a trigger level->get normalization based on mean of first period, at start of scan. 
-
+ref_norm=1
+sig_norm=1
 if calculate_Lprime_over_L==true
     for i in keys(ref_chan_dict)
         println("key=$i")

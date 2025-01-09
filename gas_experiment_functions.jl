@@ -322,7 +322,9 @@ function calculate_L_L_prime_for_scan(ref_chan, sig_chan,trig_indices,ref_trig_l
             error("high level below low level")
         end
         Δim=(high_level-low_level)/(2*I_0)
-        println("Δim = $Δim I0")
+        if i==1
+            println("Δim = $Δim I0")
+        end
         #FP_modulation_sensitiviy=FP_shift/FP_modulation_amplitude#3.5e-9#meters/volt #measured calibration factor, not needed if measured_delta_lambda is available.
         # d_lambda_d_t=FP_shift/(1/(2*FP_frequency))#*1e12 #m #cycles/second  #NB could also be determined in terms of the min and max wavelength
         Δν_h=-1#-3e10 #1/Δim*(-3e9)#(average_ν-ν_0)#<v>-vo/deltap/p  
