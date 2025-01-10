@@ -286,8 +286,8 @@ function calculate_L_prime_over_L_function(ref_chan, sig_chan,trig_indices,ref_t
         Δim=(high_level-low_level)/(2*I_0)
         high=mean(sig_chan[trig_indices[i]+rise_time:trig_indices[i+1]-fall_time])
         low=mean(sig_chan[trig_indices[i+1]+fall_time:trig_indices[i+2]-rise_time])
-        i_plus=(high+low)/I_0
-        i_minus=(high-low)/I_0
+        i_plus=(high+low)
+        i_minus=(high-low)
         # i_plus, i_minus = calculate_iplus_iminus(local_data,rise_time,trig_indices[i:i+2],1.0) #unnormalized
 
         ans=(-Δim*i_plus+i_minus)/(i_plus-Δim*i_minus) #directly calculate T'/T
@@ -305,7 +305,7 @@ function calculate_L_L_prime_for_scan(ref_chan, sig_chan,trig_indices,ref_trig_l
     L_prime=[]
     i_plus_all=[]
     i_minus_all=[]
-    I0_all=[]
+    delta_I_all=[]
     for i in 1:2:(length(trig_indices)-2) #the start of every period
         # @infiltrate
         #calculate a new ΔIm and I0
@@ -339,14 +339,14 @@ function calculate_L_L_prime_for_scan(ref_chan, sig_chan,trig_indices,ref_trig_l
         push!(L_prime, L0_prime(i_plus, i_minus, Δν_h, Δim) )
         push!(i_minus_all,i_minus)
         push!(i_plus_all,i_plus)
-        push!(I0_all,I_0)
+        push!(delta_I_all,Δim)
     end
     # I_minus=i_minus_all.*I0_all
     # I_plus=(i_plus_all.*I0_all)
     # matwrite("i_pm",Dict("i_minus"=>i_minus_all,"i_plus"=>i_plus_all))
     # matwrite("I_pm",Dict("I_minus"=>I_minus,"I_plus"=>I_plus))
 
-    return L,L_prime,i_plus_all,i_minus_all
+    return L,L_prime,i_plus_all,i_minus_all,delta_I_all
 end
 
 function prompt_for_integer()
