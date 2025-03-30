@@ -165,3 +165,66 @@ end
 
 fig2.tight_layout()
 fig2.savefig("spie_figures/loss_comparison_T_202509.png", dpi=600)
+
+
+using MAT
+
+# Initialize dictionaries to store data for saving
+data_LprimeoverL = Dict("scan_1" => Dict(), "scan_2" => Dict())
+data_T = Dict("scan_1" => Dict(), "scan_2" => Dict())
+
+fig, axs = plt.subplots(1, 2, figsize=(total_width_in_inches, subplot_height_in_inches))
+fig2, axs2 = plt.subplots(1, 2, figsize=(total_width_in_inches, subplot_height_in_inches))
+
+for key in ["1", "2"]
+    # Time-averaging setup
+    average_time = 0.5  # seconds
+    window_size = nearest_odd(average_time * 2000)
+
+    # First figure data (dα/dν from L_prime_over_L)
+    x, y = average_vector_in_chunks(mod_x[key], mod_L_prime[key] ./ mod_L[key], window_size)
+    axs[1].plot(x, y, label="")
+    data_LprimeoverL["scan_"*key]["x"] = x
+    data_LprimeoverL["scan_"*key]["LprimeoverL_no_loss"] = y
+
+    x2, y2 = average_vector_in_chunks(mod_x2[key], mod_L_prime2[key] ./ mod_L2[key], window_size)
+    axs[1].plot(x2, y2, label="loss")
+    data_LprimeoverL["scan_"*key]["x_loss"] = x2
+    data_LprimeoverL["scan_"*key]["LprimeoverL_loss"] = y2
+
+    x, y = average_vector_in_chunks(mod_x[key], mod_L_prime[key] ./ mod_L[key], window_size)
+    axs[2].plot(x, y, label="")
+
+    x3, y3 = average_vector_in_chunks(mod_x3[key], mod_L_prime3[key] ./ mod_L3[key], window_size)
+    axs[2].plot(x3, y3, label="")
+    data_LprimeoverL["scan_"*key]["x_loss_2"] = x3
+    data_LprimeoverL["scan_"*key]["LprimeoverL_loss_2"] = y3
+
+    # Second figure data (L from mod_L)
+    x4, y4 = average_vector_in_chunks(mod_x[key], mod_L[key], window_size)
+    axs2[1].plot(x4, y4, label="")
+    # data_T[key]["x5"] = x5
+    data_T["scan_"*key]["T"] = y4
+
+    x5, y5 = average_vector_in_chunks(mod_x2[key], mod_L2[key], window_size)
+    axs2[1].plot(x5, y5, label="loss")
+
+    # x6, y6 = average_vector_in_chunks(mod_x[key], mod_L[key], window_size)
+    # axs2[2].plot(x6, y6, label="")
+    # data_T[key]["x6"] = x5
+    data_T["scan_"*key]["T2"] = y5
+
+    x6, y6 = average_vector_in_chunks(mod_x3[key], mod_L3[key], window_size)
+    axs2[2].plot(x6, y6, label="")
+    data_T["scan_"*key]["T3"] = y6
+    GC.gc()  # optional garbage collection
+end
+
+# Save data for the first figure
+MAT.matwrite("loss_comparison_alpha_202509.mat", Dict("alpha_data" => data_LprimeoverL))
+
+# Save data for the second figure
+MAT.matwrite("loss_comparison_T_202509.mat", Dict("loss_data" => data_T))
+
+foo=matread("loss_comparison_alpha_202509.mat")
+foo["alpha_data"]["scan_1"]

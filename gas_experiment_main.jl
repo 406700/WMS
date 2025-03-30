@@ -94,7 +94,7 @@ ld_data_path="data/20241211/20_long.txt"
 # ld_data_path="data/20250109/2khz_20_loss_t.txt"
 ###########################################################################################################################################################################start
 
-calculate_Lprime_over_L=true
+calculate_Lprime_over_L=false
 # # global const mod_rate=5e3 NB!! double check this and set where located.
 
 ld_data=load_ld_data(ld_data_path)
@@ -206,12 +206,13 @@ else
         GC.gc()
 
         # Calculate L and L_prime for the current scan
-        L_dict[i],L_prime_dict[i],_,_,delta_I_dict[i] = calculate_L_L_prime_for_scan(ref_chan_trim, sig_chan_trim, trig_indices_trim, ref_trig_level_slope, ref_trig_level_intercept,nothing
+        println(typeof(i))
+        L_dict[i],L_prime_dict[i],_,_,delta_I_dict["scan_"*i] = calculate_L_L_prime_for_scan(ref_chan_trim, sig_chan_trim, trig_indices_trim, ref_trig_level_slope, ref_trig_level_intercept,nothing
         )
         L_time_axis=[time_chan_trim[i] for i in trig_indices_trim[2:2:end-1]] #the mid point of each scan.
         time_indices=[findmin(abs.(time_ld_dict[i].-x))[2] for x in L_time_axis]
         # time_ld_dict[i][time_chan_indices]
-        L_temp_axis[i]=temp_sensor_dict[i][time_indices]#temp sensor or temp setpoint?
+        L_temp_axis["scan_"*string(i)]=temp_sensor_dict[i][time_indices]#temp sensor or temp setpoint?
     end
     for key in keys(L_dict)
         if iseven(key)
@@ -266,6 +267,8 @@ else
     save(det_data_path[1:end-3]*"_L.jld2",Dict(string(key) => value for (key, value) in L_dict))
     save(det_data_path[1:end-3]*"_L_prime.jld2",Dict(string(key) => value for (key, value) in L_prime_dict))
     save(det_data_path[1:end-3]*"_xaxis.jld2",Dict(string(key) => value for (key, value) in L_temp_axis))
+    MAT.matwrite("delta_im_conference_data.mat", Dict("delta_I" => delta_I_dict,"temp" => delta_I_dict))
+
 end
 # using LsqFit
 
