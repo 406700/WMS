@@ -92,6 +92,10 @@ ld_data_path="data/20241211/20_long.txt"
 
 # det_data_path="data/20250109/2khz_20_loss_t.mat"
 # ld_data_path="data/20250109/2khz_20_loss_t.txt"
+###############################################################################20250111
+#The last experiment (Starday 2025.01.w11)
+
+
 ###########################################################################################################################################################################start
 
 calculate_Lprime_over_L=false
@@ -101,7 +105,8 @@ ld_data=load_ld_data(ld_data_path)
 
 ref_chan_dict, sig_chan_dict,  time_chan_dict,  temp_setpoint_dict,  temp_sensor_dict,  time_ld_dict = process_det_data(det_data_path,ld_data,load_det_data) #load=>determines of the bin file is read. outdated, default to off now.
 
-#initialize dictionaries for data storage and saving
+#initialize dictionaries for data storage and saving\
+#During experiments the wavelength is swept through the gas line via the temperature controller, and thus each 'scan' of the line is separated into its own entry. 
 L_dict = Dict{Int, Array{Float64}}()
 L_prime_dict = Dict{Int, Array{Float64}}()
 trig_dict = Dict{Int, Tuple{Float64, Float64}}()
@@ -112,6 +117,14 @@ delta_I_dict= Dict{Int, Array{Float64}}()
 
 
 # Loop over all keys in the dictionaries
+L_dict = Dict{Int, Array{Float64}}()
+L_prime_dict = Dict{Int, Array{Float64}}()
+trig_dict = Dict{Int, Tuple{Float64, Float64}}()
+L_temp_axis = Dict{Int, Array{Float64}}()
+Lprime_over_L= Dict{Int, Array{Float64}}()
+trig_indices_dict= Dict{Int, Array{Float64}}()
+delta_I_dict= Dict{Int, Array{Float64}}()
+
 function get_normalization_coefficient(ref_chan,sig_chan)
     downsample = 100
     # Find reference trigger level
@@ -127,7 +140,16 @@ end
 
 ref_norm,sig_norm=get_normalization_coefficient(ref_chan_dict[1],sig_chan_dict[1]) #calculates a trigger level->get normalization based on mean of first period, at start of scan.
 # ref_norm=1
-# sig_norm=1
+# sig_norm=1g
+L_dict = Dict{Int, Array{Float64}}()
+L_prime_dict = Dict{Int, Array{Float64}}()
+trig_dict = Dict{Int, Tuple{Float64, Float64}}()
+L_temp_axis = Dict{Int, Array{Float64}}()
+Lprime_over_L= Dict{Int, Array{Float64}}()
+trig_indices_dict= Dict{Int, Array{Float64}}()
+delta_I_dict= Dict{Int, Array{Float64}}()
+
+#Generates the cache to speed up future calculations
 if calculate_Lprime_over_L==true
     for i in keys(ref_chan_dict)
         println("key=$i")
@@ -172,6 +194,7 @@ if calculate_Lprime_over_L==true
 
     save(det_data_path[1:end-3]*"Lprime_over_L.jld2",Dict(string(key) => value for (key, value) in Lprime_over_L))
     save(det_data_path[1:end-3]*"_xaxis.jld2",Dict(string(key) => value for (key, value) in L_temp_axis))
+
 else
     for i in keys(ref_chan_dict)
         println("key=$i")
@@ -207,12 +230,11 @@ else
 
         # Calculate L and L_prime for the current scan
         println(typeof(i))
-        L_dict[i],L_prime_dict[i],_,_,delta_I_dict["scan_"*i] = calculate_L_L_prime_for_scan(ref_chan_trim, sig_chan_trim, trig_indices_trim, ref_trig_level_slope, ref_trig_level_intercept,nothing
-        )
+        L_dict[i],L_prime_dict[i],_,_,delta_I_dict[i] = calculate_L_L_prime_for_scan(ref_chan_trim, sig_chan_trim, trig_indices_trim, ref_trig_level_slope, ref_trig_level_intercept,nothing)
         L_time_axis=[time_chan_trim[i] for i in trig_indices_trim[2:2:end-1]] #the mid point of each scan.
         time_indices=[findmin(abs.(time_ld_dict[i].-x))[2] for x in L_time_axis]
         # time_ld_dict[i][time_chan_indices]
-        L_temp_axis["scan_"*string(i)]=temp_sensor_dict[i][time_indices]#temp sensor or temp setpoint?
+        L_temp_axis[i]=temp_sensor_dict[i][time_indices]#temp sensor or temp setpoint?
     end
     for key in keys(L_dict)
         if iseven(key)
@@ -267,7 +289,7 @@ else
     save(det_data_path[1:end-3]*"_L.jld2",Dict(string(key) => value for (key, value) in L_dict))
     save(det_data_path[1:end-3]*"_L_prime.jld2",Dict(string(key) => value for (key, value) in L_prime_dict))
     save(det_data_path[1:end-3]*"_xaxis.jld2",Dict(string(key) => value for (key, value) in L_temp_axis))
-    MAT.matwrite("delta_im_conference_data.mat", Dict("delta_I" => delta_I_dict,"temp" => delta_I_dict))
+    # MAT.matwrite("delta_im_conference_data.mat", Dict("delta_I" => delta_I_dict[1],"temp" => L_temp_axis[1])) (for Dag?)
 
 end
 # using LsqFit

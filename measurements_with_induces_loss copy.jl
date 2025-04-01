@@ -153,7 +153,7 @@ for i in 1:2
 end
 
 fig.tight_layout()
-fig.savefig("spie_figures/loss_comparison_alpha_202509.png", dpi=600)
+# fig.savefig("spie_figures/loss_comparison_alpha_202509.png", dpi=600)
 
 # Finalize and save second figure
 axs2[1].set_xlabel(L"temp setpoint ($^\circ$ C)")
@@ -164,7 +164,7 @@ for i in 1:2
 end
 
 fig2.tight_layout()
-fig2.savefig("spie_figures/loss_comparison_T_202509.png", dpi=600)
+# fig2.savefig("spie_figures/loss_comparison_T_202509.png", dpi=600)
 
 
 using MAT
@@ -221,10 +221,10 @@ for key in ["1", "2"]
 end
 
 # Save data for the first figure
-MAT.matwrite("loss_comparison_alpha_202509.mat", Dict("alpha_data" => data_LprimeoverL))
+# MAT.matwrite("loss_comparison_alpha_202509.mat", Dict("alpha_data" => data_LprimeoverL))
 
 # Save data for the second figure
-MAT.matwrite("loss_comparison_T_202509.mat", Dict("loss_data" => data_T))
+# MAT.matwrite("loss_comparison_T_202509.mat", Dict("loss_data" => data_T))
 
-foo=matread("loss_comparison_alpha_202509.mat")
-foo["alpha_data"]["scan_1"]
+# foo=matread("loss_comparison_alpha_202509.mat")
+# foo["alpha_data"]["scan_1"]
